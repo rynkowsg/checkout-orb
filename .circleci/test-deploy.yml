@@ -30,7 +30,7 @@ commands:
         description: "Clone with support for Git LFS"
       name_displayed:
         type: string
-        default: "rynkowsg-org/clone_git_repo"
+        default: "checkout-orb/checkout"
         description: "Command name."
 #      repo_branch:
 #        type: string
