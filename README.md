@@ -1,39 +1,40 @@
-# Orb Template
+# [checkout-orb][orb-info-docs]
 
+[![CircleCI Build Status][orb-build-status]][orb-build-url]
+[![CircleCI Orb Version][orb-info-version-svg]][orb-info-docs]
+[![GitHub License][orb-license-svg]][orb-license]
+[![CircleCI Community][orbs-discuss-svg]][orbs-discuss]
 
-[![CircleCI Build Status](https://circleci.com/gh/rynkowsg/checkout-orb.svg?style=shield "CircleCI Build Status")](https://circleci.com/gh/rynkowsg/checkout-orb) [![CircleCI Orb Version](https://badges.circleci.com/orbs/rynkowsg/checkout-orb.svg)](https://circleci.com/developer/orbs/orb/rynkowsg/checkout-orb) [![GitHub License](https://img.shields.io/badge/license-MIT-lightgrey.svg)](https://raw.githubusercontent.com/rynkowsg/checkout-orb/master/LICENSE) [![CircleCI Community](https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg)](https://discuss.circleci.com/c/ecosystem/orbs)
+## Briefly
 
+The sole purpose of this orb is doing advanced checkouts,
+exceeding what can be done with default checkout.
 
+## Usage
 
-A project template for Orbs.
+For full usage guidelines, see the [orb registry listing][orb-info-docs].
 
-This repository is designed to be automatically ingested and modified by the CircleCI CLI's `orb init` command.
+## Contributing
 
-_**Edit this area to include a custom title and description.**_
+I welcome [issues][gh-issues] to and [pull requests][gh-pulls] against this repository!
 
----
+## Docs
 
-## Resources
+- [troubleshooting](./docs/troubleshooting.md)
 
-[CircleCI Orb Registry Page](https://circleci.com/developer/orbs/orb/rynkowsg/checkout-orb) - The official registry page of this orb for all versions, executors, commands, and jobs described.
+## License
 
-[CircleCI Orb Docs](https://circleci.com/docs/orb-intro/#section=configuration) - Docs for using, creating, and publishing CircleCI Orbs.
+Copyright © 2024 Greg Rynkowski
 
-### How to Contribute
+Released under the [MIT license][orb-license].
 
-We welcome [issues](https://github.com/rynkowsg/checkout-orb/issues) to and [pull requests](https://github.com/rynkowsg/checkout-orb/pulls) against this repository!
-
-### How to Publish An Update
-1. Merge pull requests with desired changes to the main branch.
-    - For the best experience, squash-and-merge and use [Conventional Commit Messages](https://conventionalcommits.org/).
-2. Find the current version of the orb.
-    - You can run `circleci orb info rynkowsg/checkout-orb | grep "Latest"` to see the current version.
-3. Create a [new Release](https://github.com/rynkowsg/checkout-orb/releases/new) on GitHub.
-    - Click "Choose a tag" and _create_ a new [semantically versioned](http://semver.org/) tag. (ex: v1.0.0)
-      - We will have an opportunity to change this before we publish if needed after the next step.
-4.  Click _"+ Auto-generate release notes"_.
-    - This will create a summary of all of the merged pull requests since the previous release.
-    - If you have used _[Conventional Commit Messages](https://conventionalcommits.org/)_ it will be easy to determine what types of changes were made, allowing you to ensure the correct version tag is being published.
-5. Now ensure the version tag selected is semantically accurate based on the changes included.
-6. Click _"Publish Release"_.
-    - This will push a new tag and trigger your publishing pipeline on CircleCI.
+[gh-issues]: https://github.com/rynkowsg/checkout-orb/issues
+[gh-pulls]: https://github.com/rynkowsg/checkout-orb/pulls
+[orb-build-status]: https://circleci.com/gh/rynkowsg/checkout-orb.svg?style=shield "CircleCI Build Status"
+[orb-build-url]: https://circleci.com/gh/rynkowsg/checkout-orb
+[orb-info-docs]: https://circleci.com/developer/orbs/orb/rynkowsg/checkout-orb
+[orb-info-version-svg]: https://badges.circleci.com/orbs/rynkowsg/checkout-orb.svg
+[orb-license-svg]: https://img.shields.io/badge/license-MIT-lightgrey.svg
+[orb-license]: https://raw.githubusercontent.com/rynkowsg/checkout-orb/master/LICENSE
+[orbs-discuss-svg]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg
+[orbs-discuss]: https://discuss.circleci.com/c/ecosystem/orbs

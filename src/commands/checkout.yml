@@ -1,0 +1,76 @@
+description: >
+  Clones Git repo.
+
+# REMINDER: If you change anything here, copy-paste it to the test job.
+parameters:
+  debug:
+    type: boolean
+    default: false
+    description: "Flag to run the script in debug mode."
+  depth:
+    type: integer
+    default: -1
+    description: "Depth of the clone. By default -1 meaning fetch all."
+  dest_dir:
+    type: string
+    default: ~/code
+    description: "Destination where the repository is saved"
+  lfs:
+    type: boolean
+    default: false
+    description: "Clone with support for Git LFS"
+  name_displayed:
+    type: string
+    default: "rynkowsg-org/clone_git_repo"
+    description: "Command name."
+  repo_branch:
+    type: string
+    default: ""
+    description:
+      The branch to checkout.
+      If not provided, it takes the value of CIRCLE_BRANCH.
+  repo_sha1:
+    type: string
+    default: ""
+    description:
+      The SHA1 to checkout.
+      If not provided, it takes the value of CIRCLE_SHA1.
+  repo_tag:
+    type: string
+    default: ""
+    description:
+      The tag to checkout.
+      If not provided, it takes the value of CIRCLE_TAG.
+  repo_url:
+    type: string
+    default: ""
+    description:
+      URL to the repository.
+      If not provided, it takes the value of CIRCLE_REPOSITORY_URL.
+  submodules:
+    type: boolean
+    default: false
+    description: "Clone including submodules"
+  submodules_depth:
+    type: integer
+    default: -1
+    description: "Depth of the clone for submodules. By default -1 meaning fetch all."
+    # It is worth to remember that GitHub doesn't allow to fetch by SHA1.
+    # In such a case, with shallow clone, the required reference can't be found.
+    # https://github.com/boostorg/boost/issues/245#issuecomment-470716527
+
+steps:
+  - run:
+      # REMINDER: If you change anything here, copy-paste it to the test job.
+      environment:
+        DEBUG: <<parameters.debug>>
+        DEPTH: <<parameters.depth>>
+        DEST_DIR: <<parameters.dest_dir>>
+        LFS_ENABLED: <<parameters.lfs>>
+        REPO_BRANCH: <<parameters.repo_branch>>
+        REPO_SHA1: <<parameters.repo_sha1>>
+        REPO_TAG: <<parameters.repo_tag>>
+        REPO_URL: <<parameters.repo_url>>
+        SUBMODULES_ENABLED: <<parameters.submodules>>
+      name: <<parameters.name_displayed>>
+      command: <<include(scripts/clone_git_repo.bash)>>
