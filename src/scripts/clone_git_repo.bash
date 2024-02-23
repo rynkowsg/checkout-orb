@@ -266,8 +266,9 @@ function repo_checkout {
   printf "%s\n" ""
   mkdir -p "${dest}"
   if [ "$(ls -A "${dest}")" ]; then
-    printf "${RED}%s${NC}\n" "Directory \"${dest}\" is not empty."
-    exit 1
+    printf "${YELLOW}%s${NC}\n" "Directory \"${dest}\" is not empty."
+    ls -Al "${dest}"
+    printf "%s\n" ""
   fi
   cd "${dest}"
   # Skip smudge to download binary files later in a faster batch
