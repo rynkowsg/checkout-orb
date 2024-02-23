@@ -15,6 +15,10 @@ parameters:
     type: string
     default: ~/project
     description: "Destination where the repository is saved"
+  github_token:
+    type: string
+    default: ""
+    description: "GitHub token. It can help to surpass connection quotas per machine."
   lfs:
     type: boolean
     default: false
@@ -63,14 +67,15 @@ steps:
   - run:
       # REMINDER: If you change anything here, copy-paste it to the test job.
       environment:
-        DEBUG: <<parameters.debug>>
-        DEPTH: <<parameters.depth>>
-        DEST_DIR: <<parameters.dest_dir>>
-        LFS_ENABLED: <<parameters.lfs>>
-        REPO_BRANCH: <<parameters.repo_branch>>
-        REPO_SHA1: <<parameters.repo_sha1>>
-        REPO_TAG: <<parameters.repo_tag>>
-        REPO_URL: <<parameters.repo_url>>
-        SUBMODULES_ENABLED: <<parameters.submodules>>
+        PARAM_DEBUG: <<parameters.debug>>
+        PARAM_DEPTH: <<parameters.depth>>
+        PARAM_DEST_DIR: <<parameters.dest_dir>>
+        PARAM_GITHUB_TOKEN: <<parameters.github_token>>
+        PARAM_LFS_ENABLED: <<parameters.lfs>>
+        PARAM_REPO_BRANCH: <<parameters.repo_branch>>
+        PARAM_REPO_SHA1: <<parameters.repo_sha1>>
+        PARAM_REPO_TAG: <<parameters.repo_tag>>
+        PARAM_REPO_URL: <<parameters.repo_url>>
+        PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
       name: <<parameters.name_displayed>>
       command: <<include(scripts/clone_git_repo.bash)>>

@@ -137,3 +137,15 @@ So for public repos, you either have to have all urls added by https://, add to 
 
 Some notes on git-lfs auth:
 https://github.com/git-lfs/git-lfs/blob/main/docs/api/server-discovery.md
+
+## `Failed to connect to github.com port 443 after 130477 ms: Connection timed out`
+
+Example log:
+```text
+Fetching & checking out branch...
+fatal: unable to access 'https://github.com/rynkowsg/test-clone-repo-l2.git/': Failed to connect to github.com port 443 after 130477 ms: Connection timed out
+```
+
+It is not entirely clear to me why I occasionally see these timeouts.
+The orb supports github token, so if GITHUB_TOKEN is specified it is used with HTTPS requests
+but from my observations it doesn't help much.

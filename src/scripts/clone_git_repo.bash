@@ -13,13 +13,45 @@
 #
 ###
 
-set -euo pipefail
+set -eo pipefail
+
+#################################################
+#                    COLORS                     #
+#################################################
+
+GREEN=$(printf '\033[32m')
+RED=$(printf '\033[31m')
+YELLOW=$(printf '\033[33m')
+NC=$(printf '\033[0m')
 
 #################################################
 #             ENVIRONMENT VARIABLES             #
 #################################################
 
-DEBUG=${DEBUG:-0}
+# vars that should be provided by system
+
+HOME="${HOME:-/home/circleci}"
+
+# vars that can be provided:
+# - by user in orb params
+# - by user in environment vars by previous steps
+# - by CircleCI in their environment vars
+#
+# All params from orb are prefixed with PARAM_.
+#
+# The params we expect to see from CircleCI are:
+# - CHECKOUT_KEY - private key
+# - CHECKOUT_KEY_PUBLIC - public key
+# - CIRCLE_BRANCH - branch specified by CircleCI
+# - CIRCLE_REPOSITORY_URL
+# - CIRCLE_SHA1 - SHA specified by CircleCI
+# - CIRCLE_TAG - tag specified by CircleCI
+#
+
+# When assigning final value, we prioritise orb params,
+# then env variables, and at the end CircleCI-specific variables.
+
+DEBUG=${PARAM_DEBUG:-${DEBUG:-0}}
 if [ "${DEBUG}" = 1 ]; then
   set -x
   ssh-add -l
@@ -30,80 +62,75 @@ if [ "${DEBUG}" = 1 ]; then
   printenv | sort
 fi
 
-# Variables specified by CircleCI:
-# - CHECKOUT_KEY - private key
-# - CHECKOUT_KEY_PUBLIC - public key
-# - CIRCLE_BRANCH - branch specified by CircleCI
-# - CIRCLE_REPOSITORY_URL
-# - CIRCLE_SHA1 - SHA specified by CircleCI
-# - CIRCLE_TAG - tag specified by CircleCI
-
 # repo coordinates, if not specified takes coordinates from CircleCI variables
-REPO_URL=${REPO_URL:-${CIRCLE_REPOSITORY_URL:-}}
+REPO_URL=${PARAM_REPO_URL:-${REPO_URL:-${CIRCLE_REPOSITORY_URL:-}}}
 # If run from CircleCI, variables CIRCLE_REPOSITORY_URL and CIRCLE_SHA1 is
 # always provided, while CIRCLE_TAG and CIRCLE_BRANCH are depend on whether
 # the build is triggered by a tag or a branch, respectively..
 
 if [ "${REPO_URL}" == "${CIRCLE_REPOSITORY_URL}" ]; then
   # if REPO_URL & CIRCLE_REPOSITORY_URL are same, we clone the repo triggering the CI.
-  REPO_BRANCH=${REPO_BRANCH:-${CIRCLE_BRANCH:-}}
-  REPO_TAG=${REPO_TAG:-${CIRCLE_TAG:-}}
-  REPO_SHA1=${REPO_SHA1:-${CIRCLE_SHA1:-}}
+  REPO_BRANCH=${PARAM_REPO_BRANCH:-${REPO_BRANCH:-${CIRCLE_BRANCH:-}}}
+  REPO_TAG=${PARAM_REPO_TAG:-${REPO_TAG:-${CIRCLE_TAG:-}}}
+  REPO_SHA1=${PARAM_REPO_SHA1:-${REPO_SHA1:-${CIRCLE_SHA1:-}}}
 else
   # otherwise we clone other repo then the repo triggering the CI.
   # In such case repo coordinates should be given.
-  REPO_BRANCH=${REPO_BRANCH:-}
-  REPO_TAG=${REPO_TAG:-}
-  REPO_SHA1=${REPO_SHA1:-}
+  REPO_BRANCH=${PARAM_REPO_BRANCH:-${REPO_BRANCH:-}}
+  REPO_TAG=${PARAM_REPO_TAG:-${REPO_TAG:-}}
+  REPO_SHA1=${PARAM_REPO_SHA1:-${REPO_SHA1:-}}
   # Example: If we used CIRCLE_ env as defaults here, we could end up with situation that
   # CI repo is triggered by TAG. In the workflow it clones other repo by branch,
   # but since CIRCLE_TAG exists, it will try to clone tag that doesn't exist.
 fi
 
-DEPTH=${DEPTH:--1}
-SUBMODULES_DEPTH=${SUBMODULES_DEPTH:--1}
+DEPTH=${PARAM_DEPTH:--1}
+SUBMODULES_DEPTH=${PARAM_SUBMODULES_DEPTH:--1}
 
 #DEST_DIR - destination for repo, if not provided checks out in CWD
-DEST_DIR=${DEST_DIR:-.}
+DEST_DIR=${PARAM_DEST_DIR:-.}
 # eval to resolve ~ in the path
 eval DEST_DIR="${DEST_DIR}"
 
+# GITHUB_TOKEN - from env vars, e.g. from context or project env vars
+# GITHUB_TOKEN_PARAM - from orb command params
+# prefer the latter, if not available, try to take the former
+GITHUB_TOKEN=${PARAM_GITHUB_TOKEN:-${GITHUB_TOKEN:-}}
+
 # SUBMODULES_ENABLED - submodules support, if not specified, set to false
-SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-0}
+SUBMODULES_ENABLED=${PARAM_SUBMODULES_ENABLED:-${SUBMODULES_ENABLED:-0}}
 
 # LFS_ENABLED - Git LFS support, if not specified, set to false
-LFS_ENABLED=${LFS_ENABLED:-0}
+LFS_ENABLED=${PARAM_LFS_ENABLED:-${LFS_ENABLED:-0}}
 
-SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}"
+SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-${HOME}/.ssh}"
 SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}"
 SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}"
 
 #SSH_PRIVATE_KEY_B64 - SSH private key encoded in Base64 (optional), provided by context
 #SSH_PUBLIC_KEY_B64 - SSH public key encoded in Base64 (optional)), provided by context
 
+printf "${GREEN}%s${NC}\n" "Environment variables - possible to provide via command params:"
 printf "%s\n" "DEBUG=${DEBUG:-}"
-printf "%s\n" "REPO_URL=${REPO_URL:-}"
-printf "%s\n" "REPO_BRANCH=${REPO_BRANCH:-}"
-printf "%s\n" "REPO_TAG=${REPO_TAG:-}"
-printf "%s\n" "REPO_SHA1=${REPO_SHA1:-}"
-printf "%s\n" "SUBMODULES_DEPTH=${SUBMODULES_DEPTH:-}"
 printf "%s\n" "DEST_DIR=${DEST_DIR:-}"
-printf "%s\n" "SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-}"
+printf "%s\n" "GITHUB_TOKEN=${GITHUB_TOKEN:-}"
 printf "%s\n" "LFS_ENABLED=${LFS_ENABLED:-}"
+printf "%s\n" "REPO_BRANCH=${REPO_BRANCH:-}"
+printf "%s\n" "REPO_SHA1=${REPO_SHA1:-}"
+printf "%s\n" "REPO_TAG=${REPO_TAG:-}"
+printf "%s\n" "REPO_URL=${REPO_URL:-}"
+printf "%s\n" "SUBMODULES_DEPTH=${SUBMODULES_DEPTH:-}"
+printf "%s\n" "SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-}"
+
+printf "${GREEN}%s${NC}\n" "Environment variables - rest:"
+printf "%s\n" "CHECKOUT_KEY=${CHECKOUT_KEY:-}"
+printf "%s\n" "CHECKOUT_KEY_PUBLIC=${CHECKOUT_KEY_PUBLIC:-}"
 printf "%s\n" "SSH_CONFIG_DIR=${SSH_CONFIG_DIR:-}"
-printf "%s\n" "SSH_PRIVATE_KEY_PATH=${SSH_PRIVATE_KEY_PATH:-}"
-printf "%s\n" "SSH_PUBLIC_KEY_PATH=${SSH_PUBLIC_KEY_PATH:-}"
 printf "%s\n" "SSH_PRIVATE_KEY_B64=${SSH_PRIVATE_KEY_B64:-}"
+printf "%s\n" "SSH_PRIVATE_KEY_PATH=${SSH_PRIVATE_KEY_PATH:-}"
 printf "%s\n" "SSH_PUBLIC_KEY_B64=${SSH_PUBLIC_KEY_B64:-}"
-
-#################################################
-#                    COLORS                     #
-#################################################
-
-GREEN=$(printf '\033[32m')
-RED=$(printf '\033[31m')
-YELLOW=$(printf '\033[33m')
-NC=$(printf '\033[0m')
+printf "%s\n" "SSH_PUBLIC_KEY_PATH=${SSH_PUBLIC_KEY_PATH:-}"
+printf "%s\n" ""
 
 #################################################
 #      ENVIRONMENT VARIABLES - VALIDATION       #
@@ -118,68 +145,12 @@ if [ -z "${REPO_SHA1}" ]; then
   exit 1
 fi
 
-if [ -z "${SSH_CONFIG_DIR}" ]; then
-  SSH_CONFIG_DIR="$(mktemp -d -t "clone_git_repo-ssh-$(date +%Y%m%d_%H%M%S)-XXX")"
-  # shellcheck disable=SC2064
-  if [ "${DEBUG}" = 0 ]; then
-    # remove this, but only when DEBUG is false
-    # It might be useful to keep it when debugging.
-    trap "rm -rf \"${SSH_CONFIG_DIR}\"" EXIT
-  fi
-#  SSH_CONFIG_DIR=~/.ssh
-fi
-
-# Note:
-# I think CircleCI back in the days used CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC to provide SSH identity.
-#
-# but in some cases when I want my own keys (e.g. I want to fetch multiple repos),
-# then it can by done by providing SSH_PRIVATE_KEY_B64 and SSH_PUBLIC_KEY_B64
-SSH_PRIVATE_KEY=
-if (: "${SSH_PRIVATE_KEY_B64?}") 2>/dev/null; then
-  printf "%s\n" "- found env var SSH_PRIVATE_KEY_B64"
-  SSH_PRIVATE_KEY="$(echo "${SSH_PRIVATE_KEY_B64}" | base64 -d)"
-elif [ -n "${SSH_PRIVATE_KEY_PATH}" ]; then
-  SSH_PRIVATE_KEY="$(cat "${SSH_PRIVATE_KEY_PATH}")"
-  printf "%s\n" "- SSH_PRIVATE_KEY read from SSH_PRIVATE_KEY_PATH"
-elif [ -f ~/.ssh/id_rsa ]; then
-  SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)"
-  printf "%s\n" "- SSH_PRIVATE_KEY read from ~/.ssh/id_rsa"
-elif [ -n "${CHECKOUT_KEY:-}" ]; then
-  SSH_PRIVATE_KEY="${CHECKOUT_KEY:-}"
-  printf "%s\n" "- SSH_PRIVATE_KEY set to CHECKOUT_KEY"
-elif ssh-add -l &>/dev/null; then
-  printf "%s\n" "- detected ssh-agent has some keys already loaded:"
-  ssh-add -l
-else
-  printf "${RED}%s${NC}\n" "No SSH identity provided (private key)."
-  exit 1
-fi
-SSH_PUBLIC_KEY=
-if (: "${SSH_PUBLIC_KEY_B64?}") 2>/dev/null; then
-  printf "%s\n" "- found env var SSH_PUBLIC_KEY_B64"
-  SSH_PUBLIC_KEY="$(echo "${SSH_PUBLIC_KEY_B64}" | base64 -d)"
-elif [ -n "${SSH_PUBLIC_KEY_PATH}" ]; then
-  SSH_PUBLIC_KEY="$(cat "${SSH_PUBLIC_KEY_PATH}")"
-  printf "%s\n" "- SSH_PUBLIC_KEY read from SSH_PUBLIC_KEY_PATH"
-elif [ -f ~/.ssh/id_rsa.pub ]; then
-  SSH_PUBLIC_KEY="$(cat ~/.ssh/id_rsa.pub)"
-  printf "%s\n" "- SSH_PUBLIC_KEY read from ~/.ssh/id_rsa.pub"
-elif [ -n "${CHECKOUT_KEY_PUBLIC:-}" ]; then
-  SSH_PUBLIC_KEY="${CHECKOUT_KEY_PUBLIC:-}"
-  printf "%s\n" "- SSH_PUBLIC_KEY set to CHECKOUT_KEY_PUBLIC"
-elif ssh-add -l &>/dev/null; then
-  printf "%s\n" "- public key not provided, but identity already exist in the ssh-agent."
-  ssh-add -l
-else
-  printf "${RED}%s${NC}\n" "No SSH identity provided (public key)."
-  exit 1
-fi
-
 #################################################
 #                   UTILITIES                   #
 #################################################
 
 function setup_git_lfs {
+  printf "${GREEN}%s${NC}\n" "Setting up Git LFS"
   if ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
     1; # do nothing
   elif ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
@@ -188,14 +159,19 @@ function setup_git_lfs {
     sudo apt-get install -y git-lfs
     printf "${GREEN}%s${NC}\n\n" "Installing Git LFS... DONE"
   elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    sudo git lfs uninstall --system
-    git lfs uninstall
+    if git config --list --system | grep -q "filter.lfs"; then
+        sudo git lfs uninstall --system
+    fi
+    if git config --list --global | grep -q "filter.lfs"; then
+        git lfs uninstall
+    fi
   elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
     git lfs install
   else
     printf "${RED}%s${NC}\n" "This should never happen"
     exit 1
   fi
+  printf "%s\n" ""
 }
 
 function setup_ssh {
@@ -204,55 +180,145 @@ function setup_ssh {
   printf "${GREEN}%s${NC}\n" "Setting up SSH... ${SSH_CONFIG_DIR}"
   mkdir -p "${SSH_CONFIG_DIR}"
   chmod 0700 "${SSH_CONFIG_DIR}"
+
+  # --- keys
+
+  # Note:
+  # CircleCI uses CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC in the build-in checkout.
+  # At least, they used it in the past when you could still preview their checkout script in CircleCI step.
+  # The code below assumes CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC could be available,
+  # but unless CircleCI change current policy (and start setting them) or orb client
+  # export these from step a before, they are not defined.
+  #
+  # To provide custom keys, you can use either:
+  # - CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC or
+  # - SSH_PRIVATE_KEY_B64 and SSH_PUBLIC_KEY_B64.
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... private key"
+  local ssh_private_key_path_default="${SSH_CONFIG_DIR}/id_rsa"
+  local ssh_private_key_path=
+  if [ -n "${SSH_PRIVATE_KEY_PATH}" ]; then
+    if [ -f "${SSH_PRIVATE_KEY_PATH}" ]; then
+      ssh_private_key_path="${SSH_PRIVATE_KEY_PATH}"
+      printf "%s\n" "- found private key at SSH_PRIVATE_KEY_PATH (${SSH_PRIVATE_KEY_PATH})"
+    else
+      printf "${RED}%s${NC}\n" "Can not find private key at path SSH_PRIVATE_KEY_PATH (${SSH_PRIVATE_KEY_PATH})"
+      exit 1
+    fi
+  elif (: "${SSH_PRIVATE_KEY_B64?}") 2>/dev/null; then
+    printf "%s\n" "- saved private key from env var SSH_PRIVATE_KEY_B64"
+    ssh_private_key_path="${ssh_private_key_path_default}"
+    echo "${SSH_PRIVATE_KEY_B64}" | base64 -d > "${ssh_private_key_path}"
+  elif [ -f "${HOME}/.ssh/id_rsa" ]; then
+    printf "%s\n" "- found private key at ${HOME}/.ssh/id_rsa"
+    ssh_private_key_path="${HOME}/.ssh/id_rsa"
+  elif (: "${CHECKOUT_KEY?}") 2>/dev/null; then
+    ssh_private_key_path="${ssh_private_key_path_default}"
+    printf "%s" "${CHECKOUT_KEY}" > "${ssh_private_key_path}"
+    printf "%s\n" "- saved private key from env var CHECKOUT_KEY"
+  elif ssh-add -l &>/dev/null; then
+    printf "%s\n" "- private key not provided, but identity already exist in the ssh-agent."
+    ssh-add -l
+  else
+    printf "${RED}%s${NC}\n" "No SSH identity provided (private key)."
+    exit 1
+  fi
+  if [ -n "${ssh_private_key_path}" ] && [ -f "${ssh_private_key_path}" ] ; then
+    chmod 0600 "${ssh_private_key_path}"
+    ssh-add "${ssh_private_key_path}"
+  fi
+  printf "%s\n" ""
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... public key"
+  ssh_public_key_path_default="${SSH_CONFIG_DIR}/id_rsa.pub"
+  local ssh_public_key_path=
+  if [ -n "${SSH_PUBLIC_KEY_PATH}" ]; then
+    if [ -f "${SSH_PUBLIC_KEY_PATH}" ]; then
+      ssh_public_key_path="${SSH_PUBLIC_KEY_PATH}"
+      printf "%s\n" "- found public key at SSH_PUBLIC_KEY_PATH (${SSH_PUBLIC_KEY_PATH})"
+    else
+      printf "${RED}%s${NC}\n" "Can not find public key at path SSH_PUBLIC_KEY_PATH (${SSH_PUBLIC_KEY_PATH})"
+      exit 1
+    fi
+  elif (: "${SSH_PUBLIC_KEY_B64?}") 2>/dev/null; then
+    printf "%s\n" "- saved public key from env var SSH_PUBLIC_KEY_B64"
+      ssh_public_key_path="${ssh_public_key_path_default}"
+    echo "${SSH_PUBLIC_KEY_B64}" | base64 -d > "${ssh_public_key_path}"
+  elif [ -f "${HOME}/.ssh/id_rsa.pub" ]; then
+    printf "%s\n" "- found public key at ${HOME}/.ssh/id_rsa.pub"
+    ssh_public_key_path="${HOME}/.ssh/id_rsa.pub"
+  elif (: "${CHECKOUT_KEY_PUBLIC?}") 2>/dev/null; then
+    ssh_public_key_path="${ssh_public_key_path_default}"
+    printf "%s" "${CHECKOUT_KEY_PUBLIC}" > "${ssh_public_key_path}"
+    printf "%s\n" "- saved public key from env var CHECKOUT_KEY_PUBLIC"
+  elif ssh-add -l &>/dev/null; then
+    printf "%s\n" "- public key not provided, but identity already exist in the ssh-agent."
+    ssh-add -l
+  else
+    printf "${RED}%s${NC}\n" "No SSH identity provided (public key)."
+    exit 1
+  fi
+  printf "%s\n" ""
+
   # --- create known_hosts
   local known_hosts="${SSH_CONFIG_DIR}/known_hosts"
   printf "${GREEN}%s${NC}\n" "Setting up SSH... ${known_hosts}"
   # Current fingerprints: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
   {
-    printf "%s\n" "ssh.github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
     printf "%s\n" "github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
     printf "%s\n" "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+    printf "%s\n" "github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
     printf "%s\n" "github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk="
+    printf "%s\n" "ssh.github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl"
+    printf "%s\n" "ssh.github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+    printf "%s\n" "ssh.github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg="
+    printf "%s\n" "ssh.github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk="
   } >>"${known_hosts}"
-  mkdir -p ~/.ssh
-  cp "${known_hosts}" ~/.ssh/known_hosts
   # alternatively we could just use: ssh-keyscan -H github.com >> ~/.ssh/known_hosts
   chmod 0600 "${known_hosts}"
-  # --- create id_rsa.pub (it's not necessary though)
-  local public_key_path=
-  if [ -n "${SSH_PUBLIC_KEY}" ]; then
-    public_key_path="${SSH_CONFIG_DIR}/id.pub"
-    printf "${GREEN}%s${NC}\n" "Setting up SSH... ${public_key_path}"
-    printf "%s" "${SSH_PUBLIC_KEY}" >"${public_key_path}"
-  fi
-  # --- create id_rsa
-  local private_key_path=
-  if [ -n "${SSH_PRIVATE_KEY}" ]; then
-    private_key_path="${SSH_CONFIG_DIR}/id"
-    printf "${GREEN}%s${NC}\n" "Setting up SSH... ${private_key_path}"
-    printf "%s\n" "${SSH_PRIVATE_KEY}" >"${private_key_path}"
-    chmod 0600 "${private_key_path}"
-    ssh-add "${private_key_path}"
-  fi
-  eval "$(ssh-agent -s)"
+  printf "%s\n" ""
 
+  printf "${GREEN}%s${NC}\n" "Setting up SSH...  misc settings"
   # point out the private key and known_hosts (alternative to use config file)
   local ssh_params=()
   [ "${DEBUG}" = 1 ] && ssh_params+=("-v")
-  [ -n "${private_key_path}" ] && ssh_params+=("-i" "${private_key_path}")
+  [ -n "${ssh_private_key_path}" ] && ssh_params+=("-i" "${ssh_private_key_path}")
   ssh_params+=("-o" "UserKnownHostsFile=\"${known_hosts}\"")
-  export GIT_SSH="ssh ${ssh_params[*]}"
-  export GIT_SSH_COMMAND="ssh ${ssh_params[*]}"
+  # shellcheck disable=SC2155
+  export GIT_SSH="$(which ssh)"
+  export GIT_SSH_COMMAND="${GIT_SSH} ${ssh_params[*]}"
   # use git+ssh instead of https
   #git config --global url."ssh://git@github.com".insteadOf "https://github.com" || true
   git config --global --unset-all url.ssh://git@github.com.insteadof || true
+  git config --global init.defaultBranch master
   git config --global gc.auto 0 || true
+  printf "%s\n" ""
+
+  # --- validate
+  printf "${GREEN}%s${NC}\n" "Setting up SSH...  Validating GitHub authentication"
+#  eval "$(ssh-agent -s)"
+#  timeout 5
+  ssh "${ssh_params[@]}" -T git@github.com || case $? in
+      0) ;; # since we ssh github, it should never happen
+      1) ;; # ignore, 1 is here acceptable
+      *) echo "ssh validation failed with exit code $?"; exit 1;;
+  esac
+  printf "%s\n" ""
+
   printf "${GREEN}%s${NC}\n" "Setting up SSH... DONE"
   printf "%s\n" ""
-  # --- validate
-  printf "${GREEN}%s${NC}\n" "Validating GitHub authentication..."
-  ssh "${ssh_params[@]}" -T git@github.com || true
-  printf "%s\n" ""
+}
+
+# $1 - repo url
+# $2 - github token
+function adjust_repo_url {
+  local repo_url="${1}"
+  local github_token="${2}"
+  if [[ $repo_url == "https://github.com"* ]] && [[ -n "${github_token}" ]]; then
+    echo "https://${github_token}@${repo_url#https://}"
+  else
+    echo "${repo_url}"
+  fi
 }
 
 # $1 - dest
@@ -264,33 +330,37 @@ function repo_checkout {
   printf "%s\n" "- src: ${REPO_URL}"
   printf "%s\n" "- dst: ${dest}"
   printf "%s\n" ""
+
+  # --- check dest directory
   mkdir -p "${dest}"
   if [ "$(ls -A "${dest}")" ]; then
     printf "${YELLOW}%s${NC}\n" "Directory \"${dest}\" is not empty."
     ls -Al "${dest}"
     printf "%s\n" ""
   fi
+  # --- init repo
   cd "${dest}"
   # Skip smudge to download binary files later in a faster batch
-  git config --global init.defaultBranch master
   [ "${LFS_ENABLED}" = 1 ] && git lfs install --skip-smudge
   # --skip-smudge
   git init
-  git remote add origin "${REPO_URL}"
+  local repo_url
+  repo_url="$(adjust_repo_url "${REPO_URL}" "${GITHUB_TOKEN}")"
+  git remote add origin "${repo_url}"
   [ "${LFS_ENABLED}" = 1 ] && git lfs install --local --skip-smudge
   if [ "${DEBUG}" = 1 ]; then
     if [ "${LFS_ENABLED}" = 1 ]; then
       printf "${YELLOW}%s${NC}\n" "[LOGS] git lfs env"
       git lfs env
-      printf "%s\n" ""
     fi
     printf "${YELLOW}%s${NC}\n" "[LOGS] git config -l"
     git config -l --system | sort
     git config -l --global | sort
     git config -l --worktree | sort
     git config -l --local | sort
-    printf "%s\n" ""
   fi
+  printf "%s\n" ""
+
   fetch_params=()
   [ "${DEPTH}" -ne -1 ] && fetch_params+=("--depth" "${DEPTH}")
   fetch_params+=("origin")
@@ -318,8 +388,10 @@ function repo_checkout {
     fi
   fi
   printf "%s\n" ""
+
   printf "${GREEN}%s${NC}\n" "Summary"
   git --no-pager log --no-color -n 1 --format="HEAD is now at %h %s"
+  printf "%s\n" ""
 }
 
 #################################################

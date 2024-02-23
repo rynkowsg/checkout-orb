@@ -22,8 +22,12 @@ commands:
         description: "Depth of the clone. By default -1 meaning fetch all."
       dest_dir:
         type: string
-        default: ~/code
+        default: ~/project
         description: "Destination where the repository is saved"
+      github_token:
+        type: string
+        default: ""
+        description: "GitHub token. It can help to surpass connection quotas per machine."
       lfs:
         type: boolean
         default: false
@@ -91,10 +95,6 @@ commands:
           dest_dir: <<parameters.dest_dir>>
           lfs: <<parameters.lfs>>
           name_displayed: <<parameters.name_displayed>>
-          repo_branch: "$REPO_BRANCH"
-          repo_sha1: "$REPO_SHA1"
-          repo_tag: "$REPO_TAG"
-          repo_url: "$REPO_URL"
           submodules: <<parameters.submodules>>
           submodules_depth: <<parameters.submodules_depth>>
       - run:
@@ -131,6 +131,7 @@ jobs:
     steps:
       - bats/install
       - test_clone_git_repo:
+          debug: true
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
           repo_coordinates: << parameters.repo_coordinates >>
           lfs: << parameters.lfs >>
@@ -147,6 +148,7 @@ jobs:
       - checkout
       - bats/install
       - test_clone_git_repo:
+          debug: true
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
           repo_coordinates: << parameters.repo_coordinates >>
           lfs: << parameters.lfs >>
@@ -158,7 +160,9 @@ workflows:
     jobs:
       - test_clone_without_prior_checkout:
           name: "test_clone-wo/co-<< matrix.repo_coordinates >>-C:<< matrix.context >>-L:<< matrix.lfs >>-S:<< matrix.submodules >>"
-          context: << matrix.context >>
+          context:
+            - gr/test-clone-github-https
+            - << matrix.context >>
           matrix:
             parameters:
               repo_coordinates:
@@ -175,6 +179,9 @@ workflows:
 
       - test_clone_with_prior_checkout:
           name: "test_clone-w/co-<< matrix.repo_coordinates >>-C:<< matrix.context >>-L:<< matrix.lfs >>-S:<< matrix.submodules >>"
+          context:
+            - gr/test-clone-github-https
+            - << matrix.context >>
           matrix:
             parameters:
               repo_coordinates:
