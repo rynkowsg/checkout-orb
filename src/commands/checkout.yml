@@ -13,7 +13,7 @@ parameters:
     description: "Depth of the clone. By default -1 meaning fetch all."
   dest_dir:
     type: string
-    default: ~/code
+    default: ~/project
     description: "Destination where the repository is saved"
   lfs:
     type: boolean
