@@ -168,7 +168,7 @@ workflows:
                 - "l1|master-lfs||fcb0be3"
                 - "l0|master||7a87a29"
                 - "l0|master-lfs||f731330"
-              context: [empty, proj/rynkowsg-orb]
+              context: [gr/empty, gr/test-clone]
               lfs: [true, false]
               submodules: [true, false]
           filters: *filters
@@ -184,7 +184,7 @@ workflows:
                 - "l1|master-lfs||fcb0be3"
                 - "l0|master||7a87a29"
                 - "l0|master-lfs||f731330"
-              context: [empty, proj/rynkowsg-orb]
+              context: [gr/empty, gr/test-clone]
               lfs: [true, false]
               submodules: [true, false]
           filters: *filters
