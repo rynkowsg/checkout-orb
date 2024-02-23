@@ -65,6 +65,8 @@ SUBMODULES_DEPTH=${SUBMODULES_DEPTH:--1}
 
 #DEST_DIR - destination for repo, if not provided checks out in CWD
 DEST_DIR=${DEST_DIR:-.}
+# eval to resolve ~ in the path
+eval DEST_DIR="${DEST_DIR}"
 
 # SUBMODULES_ENABLED - submodules support, if not specified, set to false
 SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-0}
