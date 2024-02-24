@@ -125,6 +125,7 @@ printf "%s\n" "REPO_TAG=${REPO_TAG:-}"
 printf "%s\n" "REPO_URL=${REPO_URL:-}"
 printf "%s\n" "SUBMODULES_DEPTH=${SUBMODULES_DEPTH:-}"
 printf "%s\n" "SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-}"
+printf "%s\n" ""
 
 printf "${GREEN}%s${NC}\n" "Environment variables - rest:"
 printf "%s\n" "CHECKOUT_KEY=${CHECKOUT_KEY:-}"
@@ -156,7 +157,7 @@ fi
 function setup_git_lfs {
   printf "${GREEN}%s${NC}\n" "Setting up Git LFS"
   if ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    : # do nothing
+    printf "%s\n" "git-lfs is not installed, but also it's not needed. Nothing to do here."
   elif ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
     printf "${GREEN}%s${NC}\n" "Installing Git LFS..."
     curl -sSL https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
