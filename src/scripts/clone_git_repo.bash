@@ -46,6 +46,7 @@ HOME="${HOME:-/home/circleci}"
 # - CIRCLE_REPOSITORY_URL
 # - CIRCLE_SHA1 - SHA specified by CircleCI
 # - CIRCLE_TAG - tag specified by CircleCI
+# - CIRCLE_WORKING_DIRECTORY - working directory
 #
 
 # When assigning final value, we prioritise orb params,
@@ -87,8 +88,11 @@ fi
 DEPTH=${PARAM_DEPTH:--1}
 SUBMODULES_DEPTH=${PARAM_SUBMODULES_DEPTH:--1}
 
-#DEST_DIR - destination for repo, if not provided checks out in CWD
-DEST_DIR=${PARAM_DEST_DIR:-.}
+# DEST_DIR - destination for repo
+#     If not provided in orb param, try DEST_DIR env var.
+#     If DEST_DIR not available, try CIRCLE_WORKING_DIRECTORY.
+#     If also this one missing, try current directory.
+DEST_DIR=${PARAM_DEST_DIR:-${DEST_DIR:-${CIRCLE_WORKING_DIRECTORY:-.}}}
 # eval to resolve ~ in the path
 eval DEST_DIR="${DEST_DIR}"
 

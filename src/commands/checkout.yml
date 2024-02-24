@@ -13,8 +13,10 @@ parameters:
     description: "Depth of the clone. By default -1 meaning fetch all."
   dest_dir:
     type: string
-    default: ~/project
-    description: "Destination where the repository is saved"
+    default: ""
+    description: |
+      Destination where the repository is saved.
+      If not provided takes CIRCLE_WORKING_DIRECTORY or current directory.
   github_token:
     type: string
     default: ""
