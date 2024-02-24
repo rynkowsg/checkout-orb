@@ -131,7 +131,7 @@ jobs:
     steps:
       - bats/install
       - test_clone_git_repo:
-          debug: true
+          debug: false
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
           repo_coordinates: << parameters.repo_coordinates >>
           lfs: << parameters.lfs >>
@@ -148,7 +148,7 @@ jobs:
       - checkout
       - bats/install
       - test_clone_git_repo:
-          debug: true
+          debug: false
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
           repo_coordinates: << parameters.repo_coordinates >>
           lfs: << parameters.lfs >>
