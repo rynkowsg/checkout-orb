@@ -152,7 +152,7 @@ fi
 function setup_git_lfs {
   printf "${GREEN}%s${NC}\n" "Setting up Git LFS"
   if ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    1 # do nothing
+    : # do nothing
   elif ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
     printf "${GREEN}%s${NC}\n" "Installing Git LFS..."
     curl -sSL https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
