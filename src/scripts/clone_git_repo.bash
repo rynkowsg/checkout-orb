@@ -152,7 +152,7 @@ fi
 function setup_git_lfs {
   printf "${GREEN}%s${NC}\n" "Setting up Git LFS"
   if ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    1; # do nothing
+    1 # do nothing
   elif ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
     printf "${GREEN}%s${NC}\n" "Installing Git LFS..."
     curl -sSL https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
@@ -160,10 +160,10 @@ function setup_git_lfs {
     printf "${GREEN}%s${NC}\n\n" "Installing Git LFS... DONE"
   elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
     if git config --list --system | grep -q "filter.lfs"; then
-        sudo git lfs uninstall --system
+      sudo git lfs uninstall --system
     fi
     if git config --list --global | grep -q "filter.lfs"; then
-        git lfs uninstall
+      git lfs uninstall
     fi
   elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
     git lfs install
@@ -208,13 +208,13 @@ function setup_ssh {
   elif (: "${SSH_PRIVATE_KEY_B64?}") 2>/dev/null; then
     printf "%s\n" "- saved private key from env var SSH_PRIVATE_KEY_B64"
     ssh_private_key_path="${ssh_private_key_path_default}"
-    echo "${SSH_PRIVATE_KEY_B64}" | base64 -d > "${ssh_private_key_path}"
+    echo "${SSH_PRIVATE_KEY_B64}" | base64 -d >"${ssh_private_key_path}"
   elif [ -f "${HOME}/.ssh/id_rsa" ]; then
     printf "%s\n" "- found private key at ${HOME}/.ssh/id_rsa"
     ssh_private_key_path="${HOME}/.ssh/id_rsa"
   elif (: "${CHECKOUT_KEY?}") 2>/dev/null; then
     ssh_private_key_path="${ssh_private_key_path_default}"
-    printf "%s" "${CHECKOUT_KEY}" > "${ssh_private_key_path}"
+    printf "%s" "${CHECKOUT_KEY}" >"${ssh_private_key_path}"
     printf "%s\n" "- saved private key from env var CHECKOUT_KEY"
   elif ssh-add -l &>/dev/null; then
     printf "%s\n" "- private key not provided, but identity already exist in the ssh-agent."
@@ -223,7 +223,7 @@ function setup_ssh {
     printf "${RED}%s${NC}\n" "No SSH identity provided (private key)."
     exit 1
   fi
-  if [ -n "${ssh_private_key_path}" ] && [ -f "${ssh_private_key_path}" ] ; then
+  if [ -n "${ssh_private_key_path}" ] && [ -f "${ssh_private_key_path}" ]; then
     chmod 0600 "${ssh_private_key_path}"
     ssh-add "${ssh_private_key_path}"
   fi
@@ -242,14 +242,14 @@ function setup_ssh {
     fi
   elif (: "${SSH_PUBLIC_KEY_B64?}") 2>/dev/null; then
     printf "%s\n" "- saved public key from env var SSH_PUBLIC_KEY_B64"
-      ssh_public_key_path="${ssh_public_key_path_default}"
-    echo "${SSH_PUBLIC_KEY_B64}" | base64 -d > "${ssh_public_key_path}"
+    ssh_public_key_path="${ssh_public_key_path_default}"
+    echo "${SSH_PUBLIC_KEY_B64}" | base64 -d >"${ssh_public_key_path}"
   elif [ -f "${HOME}/.ssh/id_rsa.pub" ]; then
     printf "%s\n" "- found public key at ${HOME}/.ssh/id_rsa.pub"
     ssh_public_key_path="${HOME}/.ssh/id_rsa.pub"
   elif (: "${CHECKOUT_KEY_PUBLIC?}") 2>/dev/null; then
     ssh_public_key_path="${ssh_public_key_path_default}"
-    printf "%s" "${CHECKOUT_KEY_PUBLIC}" > "${ssh_public_key_path}"
+    printf "%s" "${CHECKOUT_KEY_PUBLIC}" >"${ssh_public_key_path}"
     printf "%s\n" "- saved public key from env var CHECKOUT_KEY_PUBLIC"
   elif ssh-add -l &>/dev/null; then
     printf "%s\n" "- public key not provided, but identity already exist in the ssh-agent."
@@ -296,12 +296,13 @@ function setup_ssh {
 
   # --- validate
   printf "${GREEN}%s${NC}\n" "Setting up SSH...  Validating GitHub authentication"
-#  eval "$(ssh-agent -s)"
-#  timeout 5
   ssh "${ssh_params[@]}" -T git@github.com || case $? in
-      0) ;; # since we ssh github, it should never happen
-      1) ;; # ignore, 1 is here acceptable
-      *) echo "ssh validation failed with exit code $?"; exit 1;;
+    0) ;; # since we ssh github, it should never happen
+    1) ;; # ignore, 1 is here acceptable
+    *)
+      echo "ssh validation failed with exit code $?"
+      exit 1
+      ;;
   esac
   printf "%s\n" ""
 
