@@ -104,7 +104,12 @@ commands:
           environment:
             LFS_ENABLED: <<parameters.lfs>>
             SUBMODULES_ENABLED: <<parameters.submodules>>
-          command: <<parameters.dest_dir>>/@bin/test.bash
+            PARAM_DEST_DIR: <<parameters.dest_dir>>
+          command: |
+            # the DEST_DIR logic here maches logic from the checkout bash impl
+            DEST_DIR=${PARAM_DEST_DIR:-${DEST_DIR:-${CIRCLE_WORKING_DIRECTORY:-.}}}
+            eval DEST_DIR="${DEST_DIR}"
+            ${DEST_DIR}/@bin/test.bash
 
 docker_base_small: &docker_base_small
   docker: [{ image: "cimg/base:2023.12" }]
