@@ -181,12 +181,12 @@ workflows:
           matrix:
             parameters:
               repo_coordinates:
-                - "l2|master||da342f2"
-                - "l2|master-lfs||59550f0"
-                - "l1|master||5345a62"
-                - "l1|master-lfs||fcb0be3"
-                - "l0|master||7a87a29"
                 - "l0|master-lfs||f731330"
+                - "l0|master||7a87a29"
+                - "l1|master-lfs||fcb0be3"
+                - "l1|master||5345a62"
+                - "l2|master-lfs||59550f0"
+                - "l2|master||da342f2"
               context: [gr/empty, gr/test-clone]
               lfs: [true, false]
               submodules: [true, false]
@@ -200,12 +200,12 @@ workflows:
           matrix:
             parameters:
               repo_coordinates:
-                - "l2|master||da342f2"
-                - "l2|master-lfs||59550f0"
-                - "l1|master||5345a62"
-                - "l1|master-lfs||fcb0be3"
-                - "l0|master||7a87a29"
                 - "l0|master-lfs||f731330"
+                - "l0|master||7a87a29"
+                - "l1|master-lfs||fcb0be3"
+                - "l1|master||5345a62"
+                - "l2|master-lfs||59550f0"
+                - "l2|master||da342f2"
               context: [gr/empty, gr/test-clone]
               lfs: [true, false]
               submodules: [true, false]
@@ -222,7 +222,6 @@ workflows:
               depth: [1, -1]
           filters: *filters
 
-      # The orb must be re-packed for publishing, and saved to the workspace.
       - orb-tools/pack:
           requires:
             - test_clone_without_prior_checkout
