@@ -372,8 +372,8 @@ function repo_checkout {
   fetch_params+=("origin")
   if [ -n "${REPO_TAG+x}" ] && [ -n "${REPO_TAG}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out tag..."
-    git fetch "${fetch_params[@]}" "tags/${REPO_TAG}"
-    git checkout --force "tags/${REPO_TAG}"
+    git fetch "${fetch_params[@]}" refs/tags/"${REPO_TAG}":refs/tags/"${REPO_TAG}"
+    git checkout --force "${REPO_TAG}"
     git reset --hard "${REPO_SHA1}"
   elif [ -n "${REPO_BRANCH+x}" ] && [ -n "${REPO_BRANCH}" ] && [ -n "${REPO_SHA1+x}" ] && [ -n "${REPO_SHA1}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out branch..."

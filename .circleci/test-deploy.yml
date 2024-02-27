@@ -157,6 +157,19 @@ jobs:
           submodules: << parameters.submodules >>
           dest_dir: /tmp/sample-repo
 
+  test_clone_shallow:
+    <<: *docker_base_small
+    parameters:
+      repo_coordinates: {type: string}
+      depth: {type: integer}
+    steps:
+      - bats/install
+      - test_clone_git_repo:
+          debug: false
+          repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
+          repo_coordinates: << parameters.repo_coordinates >>
+          depth: << parameters.depth >>
+
 workflows:
   test-deploy:
     jobs:
@@ -198,11 +211,23 @@ workflows:
               submodules: [true, false]
           filters: *filters
 
+      - test_clone_shallow:
+          name: "test_clone_shadow-<< matrix.repo_coordinates >>-D:<< matrix.depth >>"
+          context: [gr/test-clone-github-https]
+          matrix:
+            parameters:
+              repo_coordinates:
+                - "l2|master||da342f2"
+                - "l2||0.1.0|da342f2"
+              depth: [1, -1]
+          filters: *filters
+
       # The orb must be re-packed for publishing, and saved to the workspace.
       - orb-tools/pack:
           requires:
             - test_clone_without_prior_checkout
             - test_clone_with_prior_checkout
+            - test_clone_shallow
           filters: *filters
 
       - orb-tools/publish:
