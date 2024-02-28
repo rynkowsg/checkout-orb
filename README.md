@@ -133,6 +133,7 @@ I welcome [issues][gh-issues] to and [pull requests][gh-pulls] against this repo
 ## Docs
 
 - [troubleshooting](./docs/troubleshooting.md)
+- [todo](./docs/todo.md)
 
 ## License
 
