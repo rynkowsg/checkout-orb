@@ -348,7 +348,7 @@ function repo_checkout {
   # To facilitate cloning shallow repo for branch, tag or particular sha,
   # we don't use `git clone`, but combination of `git init` & `git fetch`.
   printf "${GREEN}%s${NC}\n" "Creating clean git repo..."
-  printf "%s\n" "- src: ${REPO_URL}"
+  printf "%s\n" "- repo_url: ${REPO_URL}"
   printf "%s\n" "- dst: ${dest}"
   printf "%s\n" ""
 
@@ -364,9 +364,13 @@ function repo_checkout {
   # Skip smudge to download binary files later in a faster batch
   [ "${LFS_ENABLED}" = 1 ] && git lfs install --skip-smudge
   # --skip-smudge
-  git init
   local repo_url
   repo_url="$(adjust_repo_url "${REPO_URL}" "${GITHUB_TOKEN}")"
+  if [[ "${repo_url}" != "${REPO_URL}" ]]; then
+    printf "${GREEN}%s${NC}\n" "Detected GitHub token. Update:"
+    printf "%s\n" "- repo_url: ${repo_url}"
+  fi
+  git init
   git remote add origin "${repo_url}"
   [ "${LFS_ENABLED}" = 1 ] && git lfs install --local --skip-smudge
   if [ "${DEBUG}" = 1 ]; then
