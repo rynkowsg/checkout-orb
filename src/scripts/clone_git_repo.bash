@@ -171,7 +171,7 @@ setup_git_lfs() {
     sudo apt-get install -y git-lfs
     printf "${GREEN}%s${NC}\n\n" "Installing Git LFS... DONE"
   elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    if git config --list --system | grep -q "filter.lfs"; then
+    if [ -f /etc/gitconfig ] && git config --list --system | grep -q "filter.lfs"; then
       sudo git lfs uninstall --system
     fi
     if git config --list --global | grep -q "filter.lfs"; then
@@ -380,7 +380,7 @@ repo_checkout() {
       git lfs env
     fi
     printf "${YELLOW}%s${NC}\n" "[LOGS] git config -l"
-    git config -l --system | sort
+    [ -f /etc/gitconfig ] && git config -l --system | sort
     git config -l --global | sort
     git config -l --worktree | sort
     git config -l --local | sort
