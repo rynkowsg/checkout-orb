@@ -59,14 +59,19 @@ fi
 # then env variables, and at the end CircleCI-specific variables.
 
 DEBUG=${PARAM_DEBUG:-${DEBUG:-0}}
+DEBUG_SSH=${DEBUG_SSH:-0}
+DEBUG_GIT=${DEBUG_GIT:-0}
 if [ "${DEBUG}" = 1 ]; then
   set -x
+  printenv | sort
+fi
+if [ "${DEBUG_SSH}" = 1 ]; then
   ssh-add -l
   ssh-add -L
-  ssh-agent
+fi
+if [ "${DEBUG_GIT}" = 1 ]; then
   export GIT_TRACE=1
   export GIT_CURL_VERBOSE=1
-  printenv | sort
 fi
 
 # repo coordinates, if not specified takes coordinates from CircleCI variables
@@ -302,7 +307,7 @@ EOF
   printf "${GREEN}%s${NC}\n" "Setting up SSH...  misc settings"
   # point out the private key and known_hosts (alternative to use config file)
   local ssh_params=()
-  [ "${DEBUG}" = 1 ] && ssh_params+=("-v")
+  [ "${DEBUG_SSH}" = 1 ] && ssh_params+=("-v")
   [ -n "${ssh_private_key_path}" ] && ssh_params+=("-i" "${ssh_private_key_path}")
   ssh_params+=("-o" "UserKnownHostsFile=\"${known_hosts}\"")
   # shellcheck disable=SC2155
@@ -374,7 +379,7 @@ repo_checkout() {
   git init
   git remote add origin "${repo_url}"
   [ "${LFS_ENABLED}" = 1 ] && git lfs install --local --skip-smudge
-  if [ "${DEBUG}" = 1 ]; then
+  if [ "${DEBUG_GIT}" = 1 ]; then
     if [ "${LFS_ENABLED}" = 1 ]; then
       printf "${YELLOW}%s${NC}\n" "[LOGS] git lfs env"
       git lfs env
