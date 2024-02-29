@@ -208,6 +208,9 @@ workflows:
               repo_coordinates:
                 - "l2|master||da342f2"
                 - "l2||0.1.0|da342f2"
+                # master is at da342f2. master-lfs is ahead of da342f2.
+                # by setting master-lfs with da342f2 we check whether clone with depth=1 works correctly
+                - "l2|master-lfs||da342f2"
           context: [gr/test-clone-github-https]
           debug: false
           filters: *filters
