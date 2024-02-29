@@ -415,7 +415,18 @@ repo_checkout() {
   if [ "${LFS_ENABLED}" = 1 ]; then
     git lfs pull
     if [ "${SUBMODULES_ENABLED}" = 1 ]; then
-      git submodule foreach --recursive '[ -f .gitattributes ] && grep -q "filter=lfs" .gitattributes && git lfs install --local --skip-smudge && git lfs pull || echo "Skipping submodule without LFS or .gitattributes"'
+      local fetch_lfs_in_submodule
+      fetch_lfs_in_submodule="$(mktemp -t "checkout-fetch_lfs_in_submodule-$(date +%Y%m%d_%H%M%S)-XXXXX")"
+      # todo: add cleanup
+      cat <<-EOF > "${fetch_lfs_in_submodule}"
+if [ -f .gitattributes ] && grep -q "filter=lfs" .gitattributes; then
+  git lfs install --local --skip-smudge
+  git lfs pull
+else
+  echo "Skipping submodule without LFS or .gitattributes"
+fi
+EOF
+      git submodule foreach --recursive "bash \"${fetch_lfs_in_submodule}\""
     fi
   fi
   printf "%s\n" ""
