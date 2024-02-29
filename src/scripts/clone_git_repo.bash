@@ -118,10 +118,11 @@ SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}"
 SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}"
 
 #SSH_PRIVATE_KEY_B64 - SSH private key encoded in Base64 (optional), provided by context
-#SSH_PUBLIC_KEY_B64 - SSH public key encoded in Base64 (optional)), provided by context
+#SSH_PUBLIC_KEY_B64 - SSH public key encoded in Base64 (optional), provided by context
 
 printf "${GREEN}%s${NC}\n" "Environment variables - possible to provide via command params:"
 printf "%s\n" "DEBUG=${DEBUG:-}"
+printf "%s\n" "DEPTH=${DEPTH:-}"
 printf "%s\n" "DEST_DIR=${DEST_DIR:-}"
 printf "%s\n" "GITHUB_TOKEN=${GITHUB_TOKEN:-}"
 printf "%s\n" "LFS_ENABLED=${LFS_ENABLED:-}"
@@ -160,7 +161,7 @@ fi
 #                   UTILITIES                   #
 #################################################
 
-function setup_git_lfs {
+setup_git_lfs() {
   printf "${GREEN}%s${NC}\n" "Setting up Git LFS"
   if ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
     printf "%s\n" "git-lfs is not installed, but also it's not needed. Nothing to do here."
@@ -185,7 +186,7 @@ function setup_git_lfs {
   printf "%s\n" ""
 }
 
-function setup_ssh {
+setup_ssh() {
   printf "${GREEN}%s${NC}\n" "Setting up SSH..."
   # --- create SSH dir
   printf "${GREEN}%s${NC}\n" "Setting up SSH... ${SSH_CONFIG_DIR}"
@@ -332,7 +333,7 @@ EOF
 
 # $1 - repo url
 # $2 - github token
-function adjust_repo_url {
+adjust_repo_url() {
   local repo_url="${1}"
   local github_token="${2}"
   if [[ $repo_url == "https://github.com"* ]] && [[ -n "${github_token}" ]]; then
@@ -343,7 +344,7 @@ function adjust_repo_url {
 }
 
 # $1 - dest
-function repo_checkout {
+repo_checkout() {
   local -r dest="${1}"
   # To facilitate cloning shallow repo for branch, tag or particular sha,
   # we don't use `git clone`, but combination of `git init` & `git fetch`.
