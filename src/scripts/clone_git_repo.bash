@@ -394,15 +394,14 @@ repo_checkout() {
 
   fetch_params=()
   [ "${DEPTH}" -ne -1 ] && fetch_params+=("--depth" "${DEPTH}")
-  fetch_params+=("origin")
   if [ -n "${REPO_TAG+x}" ] && [ -n "${REPO_TAG}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out tag..."
-    git fetch "${fetch_params[@]}" refs/tags/"${REPO_TAG}":refs/tags/"${REPO_TAG}"
-    git checkout --force "${REPO_TAG}"
+    git fetch "${fetch_params[@]}" origin "refs/tags/${REPO_TAG}:refs/tags/${REPO_TAG}"
+    git -c advice.detachedHead=false checkout --force "${REPO_TAG}"
     git reset --hard "${REPO_SHA1}"
   elif [ -n "${REPO_BRANCH+x}" ] && [ -n "${REPO_BRANCH}" ] && [ -n "${REPO_SHA1+x}" ] && [ -n "${REPO_SHA1}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out branch..."
-    git fetch "${fetch_params[@]}" "${REPO_BRANCH}"
+    git fetch "${fetch_params[@]}" origin "refs/heads/${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}"
     git checkout --force -B "${REPO_BRANCH}" "${REPO_SHA1}"
   else
     printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository."
