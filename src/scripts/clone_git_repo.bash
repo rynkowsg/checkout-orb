@@ -394,6 +394,11 @@ repo_checkout() {
 
   fetch_params=()
   [ "${DEPTH}" -ne -1 ] && fetch_params+=("--depth" "${DEPTH}")
+    fetch_params_serialized="$(IFS=,; echo "${fetch_params[*]}")"
+    # create fetch_repo_script
+    local fetch_repo_script
+    fetch_repo_script="$(create_fetch_repo_script)"
+    # start checkout
   if [ -n "${REPO_TAG+x}" ] && [ -n "${REPO_TAG}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out tag..."
     git fetch "${fetch_params[@]}" origin "refs/tags/${REPO_TAG}:refs/tags/${REPO_TAG}"
@@ -401,8 +406,7 @@ repo_checkout() {
     git reset --hard "${REPO_SHA1}"
   elif [ -n "${REPO_BRANCH+x}" ] && [ -n "${REPO_BRANCH}" ] && [ -n "${REPO_SHA1+x}" ] && [ -n "${REPO_SHA1}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out branch..."
-    git fetch "${fetch_params[@]}" origin "refs/heads/${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}"
-    git checkout --force -B "${REPO_BRANCH}" "${REPO_SHA1}"
+    bash "${fetch_repo_script}" "${DEBUG}" "${fetch_params_serialized}" "refs/heads/${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}" "${REPO_BRANCH}" "${REPO_SHA1}"
   else
     printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository."
     printf "${RED}%s${NC}\n" "Need to specify REPO_TAG to fetch by tag or REPO_BRANCH and REPO_SHA1 to fetch by branch."
@@ -433,6 +437,103 @@ EOF
   printf "${GREEN}%s${NC}\n" "Summary"
   git --no-pager log --no-color -n 1 --format="HEAD is now at %h %s"
   printf "%s\n" ""
+}
+
+create_fetch_repo_script() {
+  local fetch_repo_script
+  fetch_repo_script="$(mktemp -t "checkout-fetch_repo-$(date +%Y%m%d_%H%M%S)-XXXXX")"
+  # todo: add cleanup
+  cat <<-'EOF' > "${fetch_repo_script}"
+DEBUG=${1:-0}
+[ "${DEBUG}" = 1 ] && set -x
+FETCH_PARAMS_SERIALIZED="${2}"
+REFSPEC="${3}"
+BRANCH="${4}"
+SHA1="${5}"
+
+GREEN=$(printf '\033[32m')
+RED=$(printf '\033[31m')
+YELLOW=$(printf '\033[33m')
+NC=$(printf '\033[0m')
+
+fetch_repo() {
+  local fetch_params_serialized="${1}"
+  local refspec="${2}"
+  local branch="${3}"
+  local sha1="${4}"
+
+  IFS=',' read -r -a fetch_params <<< "${fetch_params_serialized}"
+
+  # Find depth in fetch_params
+  local depth_specified=0
+  local depth=
+  for ((i = 0; i < ${#fetch_params[@]}; i++)); do
+    if [[ ${fetch_params[i]} == "--depth" ]]; then
+      depth_specified=1
+      depth=${fetch_params[i+1]}
+    fi
+  done
+
+  # fetch
+  git fetch "${fetch_params[@]}" origin "${refspec}"
+
+  local checkout_error checkout_status
+  # Try to checkout
+  checkout_error=$(git checkout --force -B "${branch}" "${sha1}" 2>&1)
+  checkout_status=$?
+
+  if [ ${checkout_status} -eq 0 ]; then
+    message=$([ ${depth_specified} == 0 ] && echo "Full checkout succeeded." || echo "Shallow checkout succeeded.")
+    printf "${GREEN}%s${NC}\n" "${message}"
+  else
+    printf "${RED}%s${NC}\n" "Checkout failed with status: ${checkout_status}"
+    if [[ $checkout_error == *"is not a commit and a branch"* ]]; then
+      printf "${RED}%s${NC}\n" "Commit not found, deepening..."
+      local commit_found=false
+      # Deepen the clone until the commit is found or a limit is reached
+      for i in {1..10}; do
+        printf "${YELLOW}%s${NC}\n" "Deepening attempt ${i}: by 10 commits"
+        git fetch --deepen 10
+        # Try to checkout again
+        checkout_error=$(git checkout --force -B "${branch}" "${sha1}" 2>&1)
+        checkout_status=$?
+        if [ $checkout_status -eq 0 ]; then
+          printf "${GREEN}%s${NC}\n" "Checkout succeeded after deepening."
+          commit_found=true
+          break
+        elif [[ $checkout_error == *"is not a commit and a branch"* ]]; then
+          # same error, commit still not found
+          :
+        else
+          # If the error is not about the commit being missing, break the loop
+          printf "${RED}%s${NC}\n" "Checkout failed with an unexpected error: $checkout_error"
+          break
+        fi
+      done
+
+      if [[ $commit_found != true ]]; then
+        printf "${RED}%s${NC}\n" "Failed to find commit after deepening. Fetching the full history..."
+        git fetch --unshallow
+        checkout_error=$(git checkout --force -B "${branch}" "${sha1}")
+        checkout_status=$?
+        if [ $checkout_status -eq 0 ]; then
+          printf "${GREEN}%s${NC}\n" "Checkout succeeded after full fetch."
+        else
+          printf "${RED}%s${NC}\n" "Full checkout failed."
+          exit ${checkout_status}
+        fi
+      fi
+
+    else
+      echo "Checkout failed with an unexpected error: $checkout_error"
+      exit 1
+    fi
+  fi
+}
+
+fetch_repo "${FETCH_PARAMS_SERIALIZED}" "${REFSPEC}" "${BRANCH}" "${SHA1}"
+EOF
+  echo "${fetch_repo_script}"
 }
 
 #################################################
