@@ -30,7 +30,13 @@ NC=$(printf '\033[0m')
 
 # vars that should be provided by system
 
-HOME="${HOME:-/home/circleci}"
+# Workaround old docker images with incorrect $HOME
+# check https://github.com/docker/docker/issues/2968 for details
+if [ -z "${HOME}" ] || [ "${HOME}" = "/" ]; then
+  HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
+  export HOME
+fi
+
 
 # vars that can be provided:
 # - by user in orb params
