@@ -1,0 +1,24 @@
+description: |
+  First clone the current repository, and then additional one to given destination.
+
+usage:
+  version: 2.1
+
+  orbs:
+    checkout-orb: rynkowsg/checkout-orb@0.1.4
+
+  jobs:
+    test:
+      docker: [{image: "cimg/base:stable"}]
+      steps:
+        - checkout-orb/checkout
+        - checkout-orb/checkout:
+            repo_url: "https://github.com/rynkowsg/test-clone-repo-l0.git"
+            repo_branch: "master"
+            repo_sha1: "f731330"
+            dest_dir: /tmp/test-clone
+
+  workflows:
+    main-workflow:
+      jobs:
+        - test

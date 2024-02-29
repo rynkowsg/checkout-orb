@@ -1,0 +1,39 @@
+description: |
+  The simplest possible case includes replacement of `checkout` to `checkout-orb/checkout`.
+
+  # No options clones full repository without LFS and submodules support.
+  - checkout-orb/checkout
+
+  # Shallow clone.
+  - checkout-orb/checkout:
+      depth: 1
+
+  # Checkout and fetch LFS files.
+  - checkout-orb/checkout:
+      lfs: true
+
+  # Checkout with recursive update of all submodules.
+  - checkout-orb/checkout:
+      submodules: true
+
+  # Checkout and fetch LFS files in the repository and all its submodules.
+  - checkout-orb/checkout:
+      lfs: true
+      submodules: true
+
+usage:
+  version: 2.1
+
+  orbs:
+    checkout-orb: rynkowsg/checkout-orb@0.1.4
+
+  jobs:
+    test:
+      docker: [{image: "cimg/base:stable"}]
+      steps:
+        - checkout-orb/checkout
+
+  workflows:
+    main-workflow:
+      jobs:
+        - test

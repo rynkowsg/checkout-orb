@@ -15,64 +15,73 @@ commands:
       debug:
         type: boolean
         default: false
-        description: "Flag to run the script in debug mode."
+        description: |
+          When true, debug command logging is enabled
       depth:
         type: integer
         default: -1
-        description: "Depth of the clone. By default -1 meaning fetch all."
+        description: |
+          Specifies the clone depth, indicating the number of recent commits to include.
+          Default: -1 (fetches all commits).
       dest_dir:
         type: string
         default: ""
         description: |
-          Destination where the repository is saved.
-          If not provided takes CIRCLE_WORKING_DIRECTORY or current directory.
+          Destination directory for the repository.
+          Defaults to DEST_DIR, then CIRCLE_WORKING_DIRECTORY, or current directory if unset.
       github_token:
         type: string
         default: ""
-        description: "GitHub token. It can help to surpass connection quotas per machine."
+        description: |
+          GitHub token. It can help to surpass connection quotas per machine.
       lfs:
         type: boolean
         default: false
-        description: "Clone with support for Git LFS"
+        description:  |
+          Enables cloning with Git Large File Storage (LFS) support.
       name_displayed:
         type: string
         default: "checkout-orb/checkout"
-        description: "Command name."
+        description: |
+          The display name for the command.
 #      repo_branch:
 #        type: string
 #        default: ""
-#        description:
-#          The branch to checkout.
-#          If not provided, it takes the value of CIRCLE_BRANCH.
+#        description: |
+#          Specifies the branch to checkout.
+#          Defaults to REPO_BRANCH, then CIRCLE_BRANCH if unset.
 #      repo_sha1:
 #        type: string
 #        default: ""
-#        description:
-#          The SHA1 to checkout.
-#          If not provided, it takes the value of CIRCLE_SHA1.
+#        description: |
+#          Specifies the commit SHA1 to checkout.
+#          Defaults to REPO_SHA1, then CIRCLE_SHA1 if unset.
 #      repo_tag:
 #        type: string
 #        default: ""
-#        description:
-#          The tag to checkout.
-#          If not provided, it takes the value of CIRCLE_TAG.
+#        description: |
+#          Specifies the tag to checkout.
+#          Defaults to REPO_TAG, then CIRCLE_TAG if unset.
 #      repo_url:
 #        type: string
 #        default: ""
-#        description:
-#          URL to the repository.
-#          If not provided, it takes the value of CIRCLE_REPOSITORY_URL.
+#        description: |
+#          Specifies the repository URL.
+#          Defaults to REPO_URL, then CIRCLE_REPOSITORY_URL if unset.
       submodules:
         type: boolean
         default: false
-        description: "Clone including submodules"
+        description: |
+          Enables cloning of submodules.
       submodules_depth:
         type: integer
         default: -1
-        description: "Depth of the clone for submodules. By default -1 meaning fetch all."
-        # It is worth to remember that GitHub doesn't allow to fetch by SHA1.
-        # In such a case, with shallow clone, the required reference can't be found.
-        # https://github.com/boostorg/boost/issues/245#issuecomment-470716527
+        description: |
+          Specifies the clone depth for submodules, indicating the number of recent commits to include.
+          Default: -1 (fetches all commits).
+          # It is worth to remember that GitHub doesn't allow to fetch by SHA1.
+          # In such a case, with shallow clone, the required reference can't be found.
+          # https://github.com/boostorg/boost/issues/245#issuecomment-470716527
       # parameters specific only to test_clone_git_repo:
       repo_coordinates:
         type: string

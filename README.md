@@ -1,48 +1,53 @@
-# [checkout-orb][orb-info-docs]
+# [checkout-orb][orb-page]
 
-[![CircleCI Build Status][orb-build-status]][orb-build-url]
-[![CircleCI Orb Version][orb-info-version-svg]][orb-info-docs]
-[![GitHub License][orb-license-svg]][orb-license]
-[![CircleCI Community][orbs-discuss-svg]][orbs-discuss]
+[![CircleCI Build Status][badge-orb-build-status]][orb-pipeline]
+[![CircleCI Orb Version][badge-orb-version]][orb-page]
+[![License][badge-license]][orb-license]
+[![CircleCI Community][badge-orbs-discuss]][orbs-discuss]
 
-## Briefly
+CircleCI orb for advanced checkouts.
 
-The sole purpose of this orb is doing advanced checkouts,
-exceeding what can be done with default checkout.
+## Motivation
 
-Features:
-- support for LFS, e.g.
-  - fetch LFS files in repo using LFS
-  - don't fetch LFS files in repo using LFS
-- support for submodules, e.g.
-  - clone repo with submodules
-  - clone repo without submodules
-- support using custom SSH key pair
-- support for taking github token, e.g.
-  - use github token for HTTPS connections
-- support shallow clones
-  - fetch last commit
-  - fetch last N commits
+The standard `checkout` command is good for basic stuff, but when you need to do more, it can get tricky.
+This orb makes those tricky things easier.
 
-## Usage
+What it does:
 
-**Basic usage**
+- Supports shallow clones, so you can
+  - grab just the latest commit if that's all you need, or
+  - get the last few commits, depending on what you need.
+
+- Works with LFS (Large File Storage), so you can:
+  - get LFS files in your repo, or
+  - choose not to get LFS files if you don't need them.
+
+- Helps with submodules in a couple of ways:
+  - you can clone repos that have submodules,
+  - you can also clone repos without bringing along the submodules.
+
+- Lets you use your own SSH keys.
+
+- Supports running job locally on your machine.
+
+- Supports usage of GitHub token for fetching public repositories.
+
+
+## Quickstart
 
 The simplest possible case includes replacement of `checkout` to `checkout-orb/checkout`.
+
 ```yaml
 version: '2.1'
 
 orbs:
-  checkout-orb: rynkowsg/checkout-orb@0.1.0
+  checkout-orb: rynkowsg/checkout-orb@0.1.4
 
 jobs:
   test:
-    docker: [{image: "cimg/base:2023.12"}]
-    resource_class: small
+    docker: [{image: "cimg/base:stable"}]
     steps:
-      - ...
       - checkout-orb/checkout
-      - ...
 
 workflows:
   main-workflow:
@@ -50,90 +55,97 @@ workflows:
       - test
 ```
 
-**Make shallow clone**
+## Usage
+
+### Shallow clone
 
 ```yaml
 jobs:
   test:
-    # ...
     steps:
       - checkout-orb/checkout:
           depth: 1
 ```
+Setting `depth: 1` will clone only the top commit whether checking out the branch or a tag.
 
-**Clone with submodules**
+### Clone with LFS support
 
 ```yaml
 jobs:
   test:
-    # ...
+    steps:
+      - checkout-orb/checkout:
+          lfs: true
+```
+
+### Clone with submodules
+
+```yaml
+jobs:
+  test:
     steps:
       - checkout-orb/checkout:
           submodules: true
 ```
 
-**Clone repository other than current**
+### Clone additional repository
 
 ```yaml
 jobs:
   test:
     # ...
     steps:
+      - checkout-orb/checkout
       - checkout-orb/checkout:
           repo_url: "https://github.com/rynkowsg/test-clone-repo-l0.git"
           repo_branch: "master"
           repo_sha1: "f731330"
-
-workflows:
-  main-workflow:
-    jobs:
-      - test:
-          context: [github-token]
+          dest_dir: /tmp/test-clone
 ```
+In this case, we first clone the current repository, and then additional one to given destination.
 
-If `github-token` context specifies `GITHUB_TOKEN`, the token is used on making HTTPS requests.
+> **WARNING:** If the `dest_dir` is not provided, the command will fail because both will try to clone the repo to the default location `~/project`.
 
 
-**Clone repository other than current, but private**
+### Authenticate with GitHub token
 
-```yaml
-jobs:
-  test:
-    # ...
-    steps:
-      - checkout-orb/checkout:
-          repo_url: "git@github.com:rynkowsg/test-clone-repo-l0-priv.git"
-          repo_branch: "master"
-          repo_sha1: "f731330"
+If GitHub token is available all HTTPS clones uses it.
+It can be provided by:
+- command param `github-token` or
+- in environment variable `GITHUB_TOKEN`.
 
-workflows:
-  main-workflow:
-    jobs:
-      - test:
-          context: [test-clone-priv]
-```
+### Authenticate with custom SSH identity
 
-By default CircleCI allows to fetch only current repository.
-If you need fetch a private repository, e.g. one of your submodules, checkout would not work.
-You need to provide an SSH identity with permissions to fetch all necessary repositories.
+The SSH identity provided by default in CircleCI job allows only to fetch the current repository.
+Some scenarios when it is problematic includes:
+- when you fetch private repo other than current,
+- you employ submodules in your repository from which some are private.
+
+In such a case you need to provide additional SSH identity with access for given repository.
+Either via CircleCI dashboard or with environment variables.
 It can be done by providing one of two environment variables:
 - `CHECKOUT_KEY` - private key in plain text
 - `SSH_PRIVATE_KEY_B64` - private key in base64.
 
-In this example one of them could be provided in `test-clone-priv` context.
-
 ---
 
-For full usage guidelines, see the [orb registry listing][orb-info-docs].
+For more guidelines and examples, see the [orb registry listing][orb-page].
 
 ## Contributing
 
 I welcome [issues][gh-issues] to and [pull requests][gh-pulls] against this repository!
 
-## Docs
+## More
 
 - [troubleshooting](./docs/troubleshooting.md)
+- [testing](./docs/testing.md)
 - [todo](./docs/todo.md)
+
+## Similar projects
+
+- https://github.com/guitarrapc/git-shallow-clone-orb
+- https://github.com/issmirnov/fast-checkout-orb
+- https://github.com/vsco/advanced-checkout-orb
 
 ## License
 
@@ -141,13 +153,13 @@ Copyright © 2024 Greg Rynkowski
 
 Released under the [MIT license][orb-license].
 
+[badge-license]: https://img.shields.io/badge/license-MIT-lightgrey.svg
+[badge-orb-build-status]: https://circleci.com/gh/rynkowsg/checkout-orb.svg?style=shield "CircleCI Build Status"
+[badge-orb-version]: https://badges.circleci.com/orbs/rynkowsg/checkout-orb.svg
+[badge-orbs-discuss]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg
 [gh-issues]: https://github.com/rynkowsg/checkout-orb/issues
 [gh-pulls]: https://github.com/rynkowsg/checkout-orb/pulls
-[orb-build-status]: https://circleci.com/gh/rynkowsg/checkout-orb.svg?style=shield "CircleCI Build Status"
-[orb-build-url]: https://circleci.com/gh/rynkowsg/checkout-orb
-[orb-info-docs]: https://circleci.com/developer/orbs/orb/rynkowsg/checkout-orb
-[orb-info-version-svg]: https://badges.circleci.com/orbs/rynkowsg/checkout-orb.svg
-[orb-license-svg]: https://img.shields.io/badge/license-MIT-lightgrey.svg
 [orb-license]: https://raw.githubusercontent.com/rynkowsg/checkout-orb/master/LICENSE
-[orbs-discuss-svg]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg
+[orb-page]: https://circleci.com/developer/orbs/orb/rynkowsg/checkout-orb
+[orb-pipeline]: https://circleci.com/gh/rynkowsg/checkout-orb
 [orbs-discuss]: https://discuss.circleci.com/c/ecosystem/orbs
