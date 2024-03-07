@@ -1,9 +1,9 @@
-# [rynkowsg/checkout orb][orb-page]
+# [`rynkowsg/checkout`][orb-page] orb
 
-[![CircleCI Build Status][badge-orb-build-status]][orb-pipeline]
-[![CircleCI Orb Version][badge-orb-version]][orb-page]
-[![License][badge-license]][orb-license]
-[![CircleCI Community][badge-orbs-discuss]][orbs-discuss]
+[![CircleCI Build Status][ci-build-badge]][ci-build]
+[![CircleCI Orb Version][orb-version-badge]][orb-page]
+[![License][license-badge]][license]
+[![CircleCI Community][orbs-discuss-badge]][orbs-discuss]
 
 CircleCI orb for advanced checkouts.
 
@@ -151,15 +151,15 @@ I welcome [issues][gh-issues] to and [pull requests][gh-pulls] against this repo
 
 Copyright © 2024 Greg Rynkowski
 
-Released under the [MIT license][orb-license].
+Released under the [MIT license][license].
 
-[badge-license]: https://img.shields.io/badge/license-MIT-lightgrey.svg
-[badge-orb-build-status]: https://circleci.com/gh/rynkowsg/checkout.svg?style=shield "CircleCI Build Status"
-[badge-orb-version]: https://badges.circleci.com/orbs/rynkowsg/checkout.svg
-[badge-orbs-discuss]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg
+[ci-build-badge]: https://circleci.com/gh/rynkowsg/checkout-orb.svg?style=shield "CircleCI Build Status"
+[ci-build]: https://circleci.com/gh/rynkowsg/checkout-orb
 [gh-issues]: https://github.com/rynkowsg/checkout-orb/issues
 [gh-pulls]: https://github.com/rynkowsg/checkout-orb/pulls
-[orb-license]: https://raw.githubusercontent.com/rynkowsg/checkout-orb/master/LICENSE
+[license-badge]: https://img.shields.io/badge/license-MIT-lightgrey.svg
+[license]: https://raw.githubusercontent.com/rynkowsg/checkout-orb/master/LICENSE
 [orb-page]: https://circleci.com/developer/orbs/orb/rynkowsg/checkout
-[orb-pipeline]: https://circleci.com/gh/rynkowsg/checkout
+[orb-version-badge]: https://badges.circleci.com/orbs/rynkowsg/checkout.svg
+[orbs-discuss-badge]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg
 [orbs-discuss]: https://discuss.circleci.com/c/ecosystem/orbs
