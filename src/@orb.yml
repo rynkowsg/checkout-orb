@@ -1,6 +1,8 @@
 version: 2.1
 
 description: >
+  DEPRECATED: Please use rynkowsg/checkout.
+
   Enhance your CircleCI workflows with advanced checkout features,
   including shallow clones, Large File Storage (LFS), and submodule support.
   Utilize custom SSH keys and GitHub tokens for secure and efficient operations.
