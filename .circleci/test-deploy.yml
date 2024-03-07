@@ -3,7 +3,7 @@ orbs:
   # changelog: https://github.com/CircleCI-Public/BATS-orb/releases
   bats: circleci/bats@1.1.0
   # orb under test
-  checkout-orb: {}
+  checkout: {}
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.1.0
@@ -41,7 +41,7 @@ commands:
           Enables cloning with Git Large File Storage (LFS) support.
       name_displayed:
         type: string
-        default: "checkout-orb/checkout"
+        default: "checkout/checkout"
         description: |
           The display name for the command.
 #      repo_branch:
@@ -100,7 +100,7 @@ commands:
             echo "export REPO_BRANCH=$repo_branch" >> $BASH_ENV
             echo "export REPO_TAG=$repo_tag" >> $BASH_ENV
             echo "export REPO_SHA1=$repo_sha1" >> $BASH_ENV
-      - checkout-orb/checkout:
+      - checkout/checkout:
           debug: <<parameters.debug>>
           depth: <<parameters.depth>>
           dest_dir: <<parameters.dest_dir>>
@@ -245,7 +245,7 @@ workflows:
 
       - orb-tools/publish:
           name: publish-dev
-          orb_name: rynkowsg/checkout-orb
+          orb_name: rynkowsg/checkout
           vcs_type: << pipeline.project.type >>
           pub_type: dev
           requires:
@@ -255,7 +255,7 @@ workflows:
 
       - orb-tools/publish:
           name: publish-prod
-          orb_name: rynkowsg/checkout-orb
+          orb_name: rynkowsg/checkout
           vcs_type: << pipeline.project.type >>
           pub_type: production
           requires:

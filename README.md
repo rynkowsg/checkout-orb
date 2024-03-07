@@ -1,4 +1,4 @@
-# [checkout-orb][orb-page]
+# [rynkowsg/checkout orb][orb-page]
 
 [![CircleCI Build Status][badge-orb-build-status]][orb-pipeline]
 [![CircleCI Orb Version][badge-orb-version]][orb-page]
@@ -35,19 +35,19 @@ What it does:
 
 ## Quickstart
 
-The simplest possible case includes replacement of `checkout` to `checkout-orb/checkout`.
+The simplest possible case includes replacement of `checkout` to `checkout/checkout`.
 
 ```yaml
 version: '2.1'
 
 orbs:
-  checkout-orb: rynkowsg/checkout-orb@0.1.4
+  checkout: rynkowsg/checkout@0.1.4
 
 jobs:
   test:
     docker: [{image: "cimg/base:stable"}]
     steps:
-      - checkout-orb/checkout
+      - checkout/checkout
 
 workflows:
   main-workflow:
@@ -63,7 +63,7 @@ workflows:
 jobs:
   test:
     steps:
-      - checkout-orb/checkout:
+      - checkout/checkout:
           depth: 1
 ```
 Setting `depth: 1` will clone only the top commit whether checking out the branch or a tag.
@@ -74,7 +74,7 @@ Setting `depth: 1` will clone only the top commit whether checking out the branc
 jobs:
   test:
     steps:
-      - checkout-orb/checkout:
+      - checkout/checkout:
           lfs: true
 ```
 
@@ -84,7 +84,7 @@ jobs:
 jobs:
   test:
     steps:
-      - checkout-orb/checkout:
+      - checkout/checkout:
           submodules: true
 ```
 
@@ -95,8 +95,8 @@ jobs:
   test:
     # ...
     steps:
-      - checkout-orb/checkout
-      - checkout-orb/checkout:
+      - checkout/checkout
+      - checkout/checkout:
           repo_url: "https://github.com/rynkowsg/test-clone-repo-l0.git"
           repo_branch: "master"
           repo_sha1: "f731330"
@@ -154,12 +154,12 @@ Copyright © 2024 Greg Rynkowski
 Released under the [MIT license][orb-license].
 
 [badge-license]: https://img.shields.io/badge/license-MIT-lightgrey.svg
-[badge-orb-build-status]: https://circleci.com/gh/rynkowsg/checkout-orb.svg?style=shield "CircleCI Build Status"
-[badge-orb-version]: https://badges.circleci.com/orbs/rynkowsg/checkout-orb.svg
+[badge-orb-build-status]: https://circleci.com/gh/rynkowsg/checkout.svg?style=shield "CircleCI Build Status"
+[badge-orb-version]: https://badges.circleci.com/orbs/rynkowsg/checkout.svg
 [badge-orbs-discuss]: https://img.shields.io/badge/community-CircleCI%20Discuss-343434.svg
 [gh-issues]: https://github.com/rynkowsg/checkout-orb/issues
 [gh-pulls]: https://github.com/rynkowsg/checkout-orb/pulls
 [orb-license]: https://raw.githubusercontent.com/rynkowsg/checkout-orb/master/LICENSE
-[orb-page]: https://circleci.com/developer/orbs/orb/rynkowsg/checkout-orb
-[orb-pipeline]: https://circleci.com/gh/rynkowsg/checkout-orb
+[orb-page]: https://circleci.com/developer/orbs/orb/rynkowsg/checkout
+[orb-pipeline]: https://circleci.com/gh/rynkowsg/checkout
 [orbs-discuss]: https://discuss.circleci.com/c/ecosystem/orbs

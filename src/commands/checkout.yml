@@ -32,7 +32,7 @@ parameters:
       Enables cloning with Git Large File Storage (LFS) support.
   name_displayed:
     type: string
-    default: "checkout-orb/checkout"
+    default: "checkout/checkout"
     description: |
       The display name for the command.
   repo_branch:
