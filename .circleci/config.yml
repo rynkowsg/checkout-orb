@@ -19,19 +19,27 @@ workflows:
     jobs:
       - shellcheck/check:
           filters: *filters
+
       - orb-tools/lint:
           executor: {name: orb-tools/python, resource_class: small}
           filters: *filters
+
       - orb-tools/review:
           executor: {name: orb-tools/default, resource_class: small}
           filters: *filters
+
       - orb-tools/pack:
           executor: {name: orb-tools/default, resource_class: small}
           filters: *filters
+
       - orb-tools/continue:
+          requires:
+            - orb-tools/lint
+            - orb-tools/pack
+            - orb-tools/review
+            - shellcheck/check
           executor: {name: orb-tools/default, resource_class: small}
-          pipeline_number: << pipeline.number >>
-          vcs_type: << pipeline.project.type >>
-          orb_name: checkout
-          requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
           filters: *filters
+          orb_name: checkout
+          pipeline_number: <<pipeline.number>>
+          vcs_type: <<pipeline.project.type>>

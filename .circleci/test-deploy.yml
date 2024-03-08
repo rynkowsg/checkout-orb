@@ -2,7 +2,7 @@ version: 2.1
 orbs:
   # changelog: https://github.com/CircleCI-Public/BATS-orb/releases
   bats: circleci/bats@1.1.0
-  # orb under test
+  # orb in this repo
   checkout: {}
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
@@ -147,9 +147,9 @@ jobs:
       - test_clone_git_repo:
           debug: false
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
-          repo_coordinates: << parameters.repo_coordinates >>
-          lfs: << parameters.lfs >>
-          submodules: << parameters.submodules >>
+          repo_coordinates: <<parameters.repo_coordinates>>
+          lfs: <<parameters.lfs>>
+          submodules: <<parameters.submodules>>
           dest_dir: /tmp/sample-repo
 
   test_clone_with_prior_checkout:
@@ -164,9 +164,9 @@ jobs:
       - test_clone_git_repo:
           debug: false
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
-          repo_coordinates: << parameters.repo_coordinates >>
-          lfs: << parameters.lfs >>
-          submodules: << parameters.submodules >>
+          repo_coordinates: <<parameters.repo_coordinates>>
+          lfs: <<parameters.lfs>>
+          submodules: <<parameters.submodules>>
           dest_dir: /tmp/sample-repo
 
   test_clone_shallow:
@@ -179,17 +179,14 @@ jobs:
       - test_clone_git_repo:
           debug: false
           repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
-          repo_coordinates: << parameters.repo_coordinates >>
-          depth: << parameters.depth >>
+          repo_coordinates: <<parameters.repo_coordinates>>
+          depth: <<parameters.depth>>
 
 workflows:
   test-deploy:
     jobs:
       - test_clone_without_prior_checkout:
-          name: "test_clone-wo/co-<< matrix.repo_coordinates >>-C:<< matrix.context >>-L:<< matrix.lfs >>-S:<< matrix.submodules >>"
-          context:
-            - gr/test-clone-github-https
-            - << matrix.context >>
+          name: "test_clone; wo/co, <<matrix.repo_coordinates>>, C:<<matrix.context>>, L:<<matrix.lfs>>, S:<<matrix.submodules>>"
           matrix:
             parameters:
               repo_coordinates:
@@ -202,13 +199,13 @@ workflows:
               context: [gr/empty, gr/test-clone]
               lfs: [true, false]
               submodules: [true, false]
+          context:
+            - gr/test-clone-github-https
+            - <<matrix.context>>
           filters: *filters
 
       - test_clone_with_prior_checkout:
-          name: "test_clone-w/co-<< matrix.repo_coordinates >>-C:<< matrix.context >>-L:<< matrix.lfs >>-S:<< matrix.submodules >>"
-          context:
-            - gr/test-clone-github-https
-            - << matrix.context >>
+          name: "test_clone; w/co, <<matrix.repo_coordinates>>, C:<<matrix.context>>, L:<<matrix.lfs>>, S:<<matrix.submodules>>"
           matrix:
             parameters:
               repo_coordinates:
@@ -221,45 +218,48 @@ workflows:
               context: [gr/empty, gr/test-clone]
               lfs: [true, false]
               submodules: [true, false]
+          context:
+            - gr/test-clone-github-https
+            - <<matrix.context>>
           filters: *filters
 
       - test_clone_shallow:
-          name: "test_clone_shadow-<< matrix.repo_coordinates >>-D:<< matrix.depth >>"
-          context: [gr/test-clone-github-https]
+          name: "test_clone_shadow; <<matrix.repo_coordinates>>, D:<<matrix.depth>>"
           matrix:
             parameters:
               repo_coordinates:
                 - "l2|master||da342f2"
                 - "l2||0.1.0|da342f2"
               depth: [1, -1]
+          context: [gr/test-clone-github-https]
           filters: *filters
 
       - orb-tools/pack:
-          executor: {name: orb-tools/default, resource_class: small}
           requires:
             - test_clone_without_prior_checkout
             - test_clone_with_prior_checkout
             - test_clone_shallow
+          executor: {name: orb-tools/default, resource_class: small}
           filters: *filters
 
       - orb-tools/publish:
           name: publish-dev
-          executor: {name: orb-tools/default, resource_class: small}
-          orb_name: rynkowsg/checkout
-          vcs_type: << pipeline.project.type >>
-          pub_type: dev
           requires:
             - orb-tools/pack
           context: circleci/orb-publishing-context
+          executor: {name: orb-tools/default, resource_class: small}
           filters: *filters
+          orb_name: rynkowsg/checkout
+          pub_type: dev
+          vcs_type: <<pipeline.project.type>>
 
       - orb-tools/publish:
           name: publish-prod
-          executor: {name: orb-tools/default, resource_class: small}
-          orb_name: rynkowsg/checkout
-          vcs_type: << pipeline.project.type >>
-          pub_type: production
           requires:
             - publish-dev
           context: circleci/orb-publishing-context
+          executor: {name: orb-tools/default, resource_class: small}
           filters: *release-filters
+          orb_name: rynkowsg/checkout
+          pub_type: production
+          vcs_type: <<pipeline.project.type>>
