@@ -1,5 +1,4 @@
 version: 2.1
-
 orbs:
   # changelog: https://github.com/CircleCI-Public/BATS-orb/releases
   bats: circleci/bats@1.1.0
@@ -8,9 +7,6 @@ orbs:
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.1.0
-  # orb info: https://circleci.com/developer/orbs/orb/circleci/shellcheck
-  # changelog: https://github.com/CircleCI-Public/shellcheck-orb/releases
-  shellcheck: circleci/shellcheck@3.2.0
 
 commands:
   test_clone_git_repo:
@@ -191,13 +187,6 @@ jobs:
 workflows:
   test-deploy:
     jobs:
-      - shellcheck/check:
-          filters: *filters
-      - orb-tools/lint:
-          filters: *filters
-      - orb-tools/review:
-          filters: *filters
-
       - test_clone_without_prior_checkout:
           name: "test_clone-wo/co-<< matrix.repo_coordinates >>-C:<< matrix.context >>-L:<< matrix.lfs >>-S:<< matrix.submodules >>"
           context:

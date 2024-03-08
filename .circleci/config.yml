@@ -4,6 +4,9 @@ orbs:
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.1.0
+  # orb info: https://circleci.com/developer/orbs/orb/circleci/shellcheck
+  # changelog: https://github.com/CircleCI-Public/shellcheck-orb/releases
+  shellcheck: circleci/shellcheck@3.2.0
 
 filters: &filters
   tags:
@@ -12,12 +15,18 @@ filters: &filters
 workflows:
   lint-pack:
     jobs:
+      - orb-tools/lint:
+          filters: *filters
       - orb-tools/pack:
+          filters: *filters
+      - orb-tools/review:
+          filters: *filters
+      - shellcheck/check:
           filters: *filters
       # Triggers the next workflow in the Orb Development Kit.
       - orb-tools/continue:
           pipeline_number: << pipeline.number >>
           vcs_type: << pipeline.project.type >>
           orb_name: checkout
-          requires: [orb-tools/pack]
+          requires: [orb-tools/lint, orb-tools/pack, orb-tools/review, shellcheck/check]
           filters: *filters
