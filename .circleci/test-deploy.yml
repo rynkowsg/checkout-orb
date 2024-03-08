@@ -7,6 +7,8 @@ orbs:
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.1.0
+  # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/rynkowsg
+  rynkowsg: rynkowsg/rynkowsg@0.2.0
 
 commands:
   test_clone_git_repo:
@@ -120,10 +122,6 @@ commands:
             eval DEST_DIR="${DEST_DIR}"
             ${DEST_DIR}/@bin/test.bash
 
-docker_base_small: &docker_base_small
-  docker: [{ image: "cimg/base:2023.12" }]
-  resource_class: small
-
 # Use this tag to ensure test jobs always run,
 # even though the downstream publish job will only run on release tags.
 filters: &filters
@@ -139,11 +137,11 @@ release-filters: &release-filters
 
 jobs:
   test_clone_without_prior_checkout:
-    <<: *docker_base_small
     parameters:
       repo_coordinates: {type: string}
       lfs: {type: boolean}
       submodules: {type: boolean}
+    executor: rynkowsg/docker_x86_cimg_base
     steps:
       - bats/install
       - test_clone_git_repo:
@@ -155,11 +153,11 @@ jobs:
           dest_dir: /tmp/sample-repo
 
   test_clone_with_prior_checkout:
-    <<: *docker_base_small
     parameters:
       repo_coordinates: {type: string}
       lfs: {type: boolean}
       submodules: {type: boolean}
+    executor: rynkowsg/docker_x86_cimg_base
     steps:
       - checkout
       - bats/install
@@ -172,10 +170,10 @@ jobs:
           dest_dir: /tmp/sample-repo
 
   test_clone_shallow:
-    <<: *docker_base_small
     parameters:
       repo_coordinates: {type: string}
       depth: {type: integer}
+    executor: rynkowsg/docker_x86_cimg_base
     steps:
       - bats/install
       - test_clone_git_repo:
@@ -237,6 +235,7 @@ workflows:
           filters: *filters
 
       - orb-tools/pack:
+          executor: {name: orb-tools/default, resource_class: small}
           requires:
             - test_clone_without_prior_checkout
             - test_clone_with_prior_checkout
@@ -245,6 +244,7 @@ workflows:
 
       - orb-tools/publish:
           name: publish-dev
+          executor: {name: orb-tools/default, resource_class: small}
           orb_name: rynkowsg/checkout
           vcs_type: << pipeline.project.type >>
           pub_type: dev
@@ -255,6 +255,7 @@ workflows:
 
       - orb-tools/publish:
           name: publish-prod
+          executor: {name: orb-tools/default, resource_class: small}
           orb_name: rynkowsg/checkout
           vcs_type: << pipeline.project.type >>
           pub_type: production
