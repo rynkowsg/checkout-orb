@@ -89,4 +89,4 @@ steps:
         PARAM_REPO_URL: <<parameters.repo_url>>
         PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
       name: <<parameters.name_displayed>>
-      command: <<include(scripts/clone_git_repo.bash)>>
+      command: <<include(scripts/gen/clone_git_repo.bash)>>

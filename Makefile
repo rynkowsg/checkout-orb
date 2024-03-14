@@ -32,3 +32,7 @@ format-update-patches:
 	\[ -f @bin/res/pre-format.patch \] && git add @bin/res/pre-format.patch
 	\[ -f @bin/res/post-format.patch \] && git add @bin/res/post-format.patch
 	git commit -m "ci: Update patches"
+
+gen: deps_src
+	# with shellpack https://github.com/rynkowsg/shellpack/commit/709b87e219cc0a45141e65b30fc60b7aac743b72
+	shellpack pack -i src/scripts/clone_git_repo.bash -o src/scripts/gen/clone_git_repo.bash
