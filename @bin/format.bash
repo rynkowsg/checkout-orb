@@ -2,11 +2,12 @@
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 #
-# Lint bash source files
+# Validates/corrects format
 #
 # Example:
 #
-#     @bin/lint.bash
+#  - check:  @bin/format.bash check
+#  - apply:  @bin/format.bash apply
 #
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -17,16 +18,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P || exit 1)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P || exit 1)"
 # Library Sourcing
 SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@81b70c3da598456200d9c63fda779a04012ff256"}"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@81b70c3da598456200d9c63fda779a04012ff256/lib/tool/lint.bash
-source "${SHELL_GR_DIR}/lib/tool/lint.bash" # lint
+# shellcheck source=.github_deps/rynkowsg/shell-gr@81b70c3da598456200d9c63fda779a04012ff256/lib/tool/format.bash
+source "${SHELL_GR_DIR}/lib/tool/format.bash" # format_with_env
 
 main() {
+  local format_cmd_type=$1
   local error=0
-  lint bash < <(find "${ROOT_DIR}" -type f \( -name '*.bash' -o -name '*.sh' \) | grep -v -E '(.github_deps|/gen/)') || ((error += $?))
-  lint bats < <(find "${ROOT_DIR}" -type f -name '*.bats') || ((error += $?))
+  format_with_env "${format_cmd_type}" bash < <(find "${ROOT_DIR}" -type f \( -name '*.bash' -o -name '*.sh' \) | grep -v -E '(.github_deps|/gen/)') || ((error += $?))
+  format_with_env "${format_cmd_type}" bats < <(find "${ROOT_DIR}" -type f -name '*.bats') || ((error += $?))
   if ((error > 0)); then
     exit "$error"
   fi
 }
 
-main
+main "$@"

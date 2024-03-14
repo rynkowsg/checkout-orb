@@ -37,7 +37,6 @@ if [ -z "${HOME}" ] || [ "${HOME}" = "/" ]; then
   export HOME
 fi
 
-
 # vars that can be provided:
 # - by user in orb params
 # - by user in environment vars by previous steps
@@ -394,11 +393,14 @@ repo_checkout() {
 
   fetch_params=()
   [ "${DEPTH}" -ne -1 ] && fetch_params+=("--depth" "${DEPTH}")
-    fetch_params_serialized="$(IFS=,; echo "${fetch_params[*]}")"
-    # create fetch_repo_script
-    local fetch_repo_script
-    fetch_repo_script="$(create_fetch_repo_script)"
-    # start checkout
+  fetch_params_serialized="$(
+    IFS=,
+    echo "${fetch_params[*]}"
+  )"
+  # create fetch_repo_script
+  local fetch_repo_script
+  fetch_repo_script="$(create_fetch_repo_script)"
+  # start checkout
   if [ -n "${REPO_TAG+x}" ] && [ -n "${REPO_TAG}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out tag..."
     git fetch "${fetch_params[@]}" origin "refs/tags/${REPO_TAG}:refs/tags/${REPO_TAG}"
@@ -421,7 +423,7 @@ repo_checkout() {
       local fetch_lfs_in_submodule
       fetch_lfs_in_submodule="$(mktemp -t "checkout-fetch_lfs_in_submodule-$(date +%Y%m%d_%H%M%S)-XXXXX")"
       # todo: add cleanup
-      cat <<-EOF > "${fetch_lfs_in_submodule}"
+      cat <<-EOF >"${fetch_lfs_in_submodule}"
 if [ -f .gitattributes ] && grep -q "filter=lfs" .gitattributes; then
   git lfs install --local --skip-smudge
   git lfs pull
@@ -443,7 +445,7 @@ create_fetch_repo_script() {
   local fetch_repo_script
   fetch_repo_script="$(mktemp -t "checkout-fetch_repo-$(date +%Y%m%d_%H%M%S)-XXXXX")"
   # todo: add cleanup
-  cat <<-'EOF' > "${fetch_repo_script}"
+  cat <<-'EOF' >"${fetch_repo_script}"
 DEBUG=${1:-0}
 [ "${DEBUG}" = 1 ] && set -x
 FETCH_PARAMS_SERIALIZED="${2}"
