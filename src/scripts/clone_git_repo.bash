@@ -19,9 +19,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P || exit 1)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd -P || exit 1)"
 # Library Sourcing
-SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@5d7dc979f7d5fae10f471e370a9a8898a11a1c99"}"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5d7dc979f7d5fae10f471e370a9a8898a11a1c99/lib/color.bash
+SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@c3f3d17"}"
+# shellcheck source=.github_deps/rynkowsg/shell-gr@c3f3d17/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
+# shellcheck source=.github_deps/rynkowsg/shell-gr@c3f3d17/lib/git.bash
+source "${SHELL_GR_DIR}/lib/git.bash" # setup_git_lfs
 
 #################################################
 #             ENVIRONMENT VARIABLES             #
@@ -163,31 +165,6 @@ fi
 #################################################
 #                   UTILITIES                   #
 #################################################
-
-setup_git_lfs() {
-  printf "${GREEN}%s${NC}\n" "Setting up Git LFS"
-  if ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    printf "%s\n" "git-lfs is not installed, but also it's not needed. Nothing to do here."
-  elif ! which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
-    printf "${GREEN}%s${NC}\n" "Installing Git LFS..."
-    curl -sSL https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-    sudo apt-get install -y git-lfs
-    printf "${GREEN}%s${NC}\n\n" "Installing Git LFS... DONE"
-  elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 0 ]; then
-    if [ -f /etc/gitconfig ] && git config --list --system | grep -q "filter.lfs"; then
-      sudo git lfs uninstall --system
-    fi
-    if git config --list --global | grep -q "filter.lfs"; then
-      git lfs uninstall
-    fi
-  elif which git-lfs >/dev/null && [ "${LFS_ENABLED}" = 1 ]; then
-    git lfs install
-  else
-    printf "${RED}%s${NC}\n" "This should never happen"
-    exit 1
-  fi
-  printf "%s\n" ""
-}
 
 setup_ssh() {
   printf "${GREEN}%s${NC}\n" "Setting up SSH..."
@@ -544,7 +521,7 @@ EOF
 main() {
   # omit checkout when code already exist (e.g. mounted locally with -v param)
   if [ ! -e "${HOME}/code/.git" ]; then
-    setup_git_lfs
+    setup_git_lfs "${LFS_ENABLED}"
     setup_ssh
     repo_checkout "${DEST_DIR}"
   fi
