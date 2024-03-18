@@ -19,11 +19,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P || exit 1)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd -P || exit 1)"
 # Library Sourcing
-SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@c3f3d17"}"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@c3f3d17/lib/color.bash
+SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@70701cb"}"
+# shellcheck source=.github_deps/rynkowsg/shell-gr@70701cb/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@c3f3d17/lib/git.bash
-source "${SHELL_GR_DIR}/lib/git.bash" # setup_git_lfs
+# shellcheck source=.github_deps/rynkowsg/shell-gr@70701cb/lib/git.bash
+source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs
 
 #################################################
 #             ENVIRONMENT VARIABLES             #
@@ -311,18 +311,6 @@ EOF
   printf "%s\n" ""
 }
 
-# $1 - repo url
-# $2 - github token
-adjust_repo_url() {
-  local repo_url="${1}"
-  local github_token="${2}"
-  if [[ $repo_url == "https://github.com"* ]] && [[ -n "${github_token}" ]]; then
-    echo "https://${github_token}@${repo_url#https://}"
-  else
-    echo "${repo_url}"
-  fi
-}
-
 # $1 - dest
 repo_checkout() {
   local -r dest="${1}"
@@ -346,7 +334,7 @@ repo_checkout() {
   [ "${LFS_ENABLED}" = 1 ] && git lfs install --skip-smudge
   # --skip-smudge
   local repo_url
-  repo_url="$(adjust_repo_url "${REPO_URL}" "${GITHUB_TOKEN}")"
+  repo_url="$(github_authorized_repo_url "${REPO_URL}" "${GITHUB_TOKEN}")"
   if [[ "${repo_url}" != "${REPO_URL}" ]]; then
     printf "${GREEN}%s${NC}\n" "Detected GitHub token. Update:"
     printf "%s\n" "- repo_url: ${repo_url}"
