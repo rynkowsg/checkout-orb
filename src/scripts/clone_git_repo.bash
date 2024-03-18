@@ -16,13 +16,17 @@
 # Bash Strict Mode Settings
 set -euo pipefail
 # Path Initialization
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P || exit 1)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd -P || exit 1)"
+if [ -z "${SHELL_GR_DIR:-}" ]; then
+  SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
+  SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
+  SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
+  ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@4ae5350"
+fi
 # Library Sourcing
-SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@70701cb"}"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@70701cb/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@4ae5350/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@70701cb/lib/git.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@4ae5350/lib/git.bash
 source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs
 
 #################################################
@@ -515,11 +519,8 @@ main() {
   fi
 }
 
-# shellcheck disable=SC2199
-# to disable warning about concatenation of BASH_SOURCE[@]
-# It is not a problem. This part pf condition is only to prevent `unbound variable` error.
-if [[ -n "${BASH_SOURCE[@]}" && "${BASH_SOURCE[0]}" != "${0}" ]]; then
-  [[ -n "${BASH_SOURCE[0]}" ]] && printf "%s\n" "Loaded: ${BASH_SOURCE[0]}"
-else
+if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]] || [[ "${CIRCLECI}" == "true" ]]; then
   main "$@"
+else
+  printf "%s\n" "Loaded: ${BASH_SOURCE[0]:-}"
 fi

@@ -139,11 +139,25 @@ jobs:
   test_clone_simple:
     parameters:
       debug: {type: boolean, default: false}
-      executor: {type: executor}
+      executor: {type: string}
     executor: <<parameters.executor>>
     steps:
-      - checkout/checkout:
-          debug: <<parameters.debug>>
+      - when:
+          condition: {not: {equal: ["<<parameters.executor>>", "rynkowsg/macos"]}}
+          steps:
+            - checkout/checkout:
+                debug: <<parameters.debug>>
+      - when:
+          condition: {equal: ["<<parameters.executor>>", "rynkowsg/macos"]}
+          steps:
+            - run:
+                name: Install bash
+                command: |
+                  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+                  brew install bash
+            - checkout/checkout:
+                bash_path: /usr/local/bin/bash
+                debug: <<parameters.debug>>
 
   test_clone_shallow:
     parameters:

@@ -3,6 +3,13 @@ description: >
 
 # REMINDER: If you change anything here, copy-paste it to the test job.
 parameters:
+  bash_path:
+    type: string
+    default: ""
+    description: |
+      The command requires at least Bash 4.
+      If the default is lower, it needs to be installed before the command.
+      If value not provided, the default bash is used.
   debug:
     type: boolean
     default: false
@@ -74,19 +81,44 @@ parameters:
     # In such a case, with shallow clone, the required reference can't be found.
     # https://github.com/boostorg/boost/issues/245#issuecomment-470716527
 
+
 steps:
-  - run:
-      # REMINDER: If you change anything here, copy-paste it to the test job.
-      environment:
-        PARAM_DEBUG: <<parameters.debug>>
-        PARAM_DEPTH: <<parameters.depth>>
-        PARAM_DEST_DIR: <<parameters.dest_dir>>
-        PARAM_GITHUB_TOKEN: <<parameters.github_token>>
-        PARAM_LFS_ENABLED: <<parameters.lfs>>
-        PARAM_REPO_BRANCH: <<parameters.repo_branch>>
-        PARAM_REPO_SHA1: <<parameters.repo_sha1>>
-        PARAM_REPO_TAG: <<parameters.repo_tag>>
-        PARAM_REPO_URL: <<parameters.repo_url>>
-        PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
-      name: <<parameters.name_displayed>>
-      command: <<include(scripts/gen/clone_git_repo.bash)>>
+  # when no custom bash provided
+  - when:
+      condition: {equal: [<<parameters.bash_path>>, ""]}
+      steps:
+        - run:
+            # REMINDER: If you change anything here, copy-paste it to the test job.
+            environment:
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_DEPTH: <<parameters.depth>>
+              PARAM_DEST_DIR: <<parameters.dest_dir>>
+              PARAM_GITHUB_TOKEN: <<parameters.github_token>>
+              PARAM_LFS_ENABLED: <<parameters.lfs>>
+              PARAM_REPO_BRANCH: <<parameters.repo_branch>>
+              PARAM_REPO_SHA1: <<parameters.repo_sha1>>
+              PARAM_REPO_TAG: <<parameters.repo_tag>>
+              PARAM_REPO_URL: <<parameters.repo_url>>
+              PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
+            name: <<parameters.name_displayed>>
+            command: <<include(scripts/gen/clone_git_repo.bash)>>
+  # when custom bash provided
+  - when:
+      condition: {not: {equal: [<<parameters.bash_path>>, ""]}}
+      steps:
+        - run:
+            shell: <<parameters.bash_path>>
+            # REMINDER: If you change anything here, copy-paste it to the test job.
+            environment:
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_DEPTH: <<parameters.depth>>
+              PARAM_DEST_DIR: <<parameters.dest_dir>>
+              PARAM_GITHUB_TOKEN: <<parameters.github_token>>
+              PARAM_LFS_ENABLED: <<parameters.lfs>>
+              PARAM_REPO_BRANCH: <<parameters.repo_branch>>
+              PARAM_REPO_SHA1: <<parameters.repo_sha1>>
+              PARAM_REPO_TAG: <<parameters.repo_tag>>
+              PARAM_REPO_URL: <<parameters.repo_url>>
+              PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
+            name: <<parameters.name_displayed>>
+            command: <<include(scripts/gen/clone_git_repo.bash)>>
