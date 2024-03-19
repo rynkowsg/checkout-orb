@@ -21,14 +21,14 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@8b428f7"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@ead382a"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/circleci.bash
-source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images
-# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/git.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/circleci.bash
+source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info
+# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/git.bash
 source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs
 
 #################################################
@@ -507,6 +507,7 @@ EOF
 
 main() {
   fix_home_in_old_images
+  print_common_debug_info "$@"
   # omit checkout when code already exist (e.g. mounted locally with -v param)
   if [ ! -e "${HOME}/code/.git" ]; then
     setup_git_lfs "${LFS_ENABLED}"

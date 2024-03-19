@@ -21,10 +21,10 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@8b428f7"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@ead382a"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
 
@@ -38,9 +38,22 @@ RED=$(printf '\033[31m')
 YELLOW=$(printf '\033[33m')
 NC=$(printf '\033[0m')
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/circleci.bash
-# source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images # BEGIN
+# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/circleci.bash
+# source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
+
+# Path Initialization
+if [ -n "${SHELL_GR_DIR}" ]; then
+  _SHELL_GR_DIR="${SHELL_GR_DIR}"
+else
+  _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
+  _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
+  _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
+  _ROOT_DIR="$(cd "${_SCRIPT_DIR}/.." && pwd -P || exit 1)"
+  _SHELL_GR_DIR="${_ROOT_DIR}"
+fi
+# Library Sourcing
+# source "${_SHELL_GR_DIR}/lib/color.bash" # GREEN, NC # SKIPPED
 
 fix_home_in_old_images() {
   # Workaround old docker images with incorrect $HOME
@@ -50,8 +63,32 @@ fix_home_in_old_images() {
     export HOME
   fi
 }
-# source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/git.bash
+
+# Prints common debug info
+# Usage:
+#     print_common_debug_info "$@"
+print_common_debug_info() {
+  printf "${GREEN}%s${NC}\n" "Common debug info"
+  bash --version
+  # typical CLI debugging variables
+  printf "\$0: %s\n" "$0"
+  printf "\$@: %s\n" "$@"
+  printf "BASH_SOURCE[0]: %s\n" "${BASH_SOURCE[0]}"
+  printf "BASH_SOURCE[*]: %s\n" "${BASH_SOURCE[*]}"
+  # other common
+  printf "HOME: %s\n" "${HOME}"
+  printf "PATH: %s\n" "${PATH}"
+  printf "CIRCLECI: %s\n" "${CIRCLECI}"
+  # shellpack related
+  [ -n "${SCRIPT_PATH:-}" ] && printf "SCRIPT_PATH: %s\n" "${SCRIPT_PATH}"
+  [ -n "${SCRIPT_DIR:-}" ] && printf "SCRIPT_DIR: %s\n" "${SCRIPT_DIR}"
+  [ -n "${ROOT_DIR:-}" ] && printf "ROOT_DIR: %s\n" "${ROOT_DIR}"
+  [ -n "${SHELL_GR_DIR:-}" ] && printf "SHELL_GR_DIR: %s\n" "${SHELL_GR_DIR}"
+  [ -n "${_SHELL_GR_DIR:-}" ] && printf "_SHELL_GR_DIR: %s\n" "${_SHELL_GR_DIR}"
+  printf "%s\n" ""
+}
+# source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
+# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/git.bash
 # source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs # BEGIN
 #!/usr/bin/env bash
 
@@ -586,6 +623,7 @@ EOF
 
 main() {
   fix_home_in_old_images
+  print_common_debug_info "$@"
   # omit checkout when code already exist (e.g. mounted locally with -v param)
   if [ ! -e "${HOME}/code/.git" ]; then
     setup_git_lfs "${LFS_ENABLED}"
