@@ -21,10 +21,10 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@ead382a"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@30257df"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
 
@@ -38,7 +38,7 @@ RED=$(printf '\033[31m')
 YELLOW=$(printf '\033[33m')
 NC=$(printf '\033[0m')
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/circleci.bash
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
 
@@ -88,8 +88,8 @@ print_common_debug_info() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@ead382a/lib/git.bash
-# source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs # BEGIN
+# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/git.bash
+# source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs, setup_ssh # BEGIN
 #!/usr/bin/env bash
 
 # Path Initialization
@@ -145,7 +145,162 @@ github_authorized_repo_url() {
     echo "${repo_url}"
   fi
 }
-# source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs # END
+
+setup_ssh() {
+  local -r input_SSH_CONFIG_DIR="${GR_GIT__SSH_CONFIG_DIR:-}"
+  local -r input_SSH_PRIVATE_KEY_PATH="${GR_GIT__SSH_PRIVATE_KEY_PATH:-}"
+  local -r input_SSH_PUBLIC_KEY_PATH="${GR_GIT__SSH_PUBLIC_KEY_PATH:-}"
+  local -r input_SSH_PRIVATE_KEY_B64="${GR_GIT__SSH_PRIVATE_KEY_B64:-}"
+  local -r input_CHECKOUT_KEY="${GR_GIT__CHECKOUT_KEY:-}"
+  local -r input_CHECKOUT_KEY_PUBLIC="${GR_GIT__CHECKOUT_KEY_PUBLIC:-}"
+  local -r input_SSH_PUBLIC_KEY_B64="${GR_GIT__SSH_PUBLIC_KEY_B64:-}"
+  local -r input_DEBUG_SSH="${GR_GIT__DEBUG_SSH:-}"
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH..."
+  # --- create SSH dir
+  local -r ssh_config_dir="${input_SSH_CONFIG_DIR:-"${HOME}/.ssh"}"
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... ${ssh_config_dir}"
+  mkdir -p "${ssh_config_dir}"
+  chmod 0700 "${ssh_config_dir}"
+
+  # --- keys
+
+  # Note:
+  # CircleCI uses CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC in the build-in checkout.
+  # At least, they used it in the past when you could still preview their checkout script in CircleCI step.
+  # The code below assumes CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC could be available,
+  # but unless CircleCI change current policy (and start setting them) or orb client
+  # export these from step a before, they are not defined.
+  #
+  # To provide custom keys, you can use either:
+  # - CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC or
+  # - SSH_PRIVATE_KEY_B64 and SSH_PUBLIC_KEY_B64.
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... private key"
+  local ssh_private_key_path_default="${ssh_config_dir}/id_rsa"
+  local ssh_private_key_path=
+  if [ -n "${input_SSH_PRIVATE_KEY_PATH}" ]; then
+    if [ -f "${input_SSH_PRIVATE_KEY_PATH}" ]; then
+      ssh_private_key_path="${input_SSH_PRIVATE_KEY_PATH}"
+      printf "%s\n" "- found private key at given path (${input_SSH_PRIVATE_KEY_PATH})"
+    else
+      printf "${RED}%s${NC}\n" "Can not find private key at the given path (${input_SSH_PRIVATE_KEY_PATH})"
+      exit 1
+    fi
+  elif [ -n "${input_SSH_PRIVATE_KEY_B64}" ]; then
+    printf "%s\n" "- found private key at given base64 value"
+    ssh_private_key_path="${ssh_private_key_path_default}"
+    echo "${input_SSH_PRIVATE_KEY_B64}" | base64 -d >"${ssh_private_key_path}"
+  elif [ -f "${HOME}/.ssh/id_rsa" ]; then
+    printf "%s\n" "- found private key at ${HOME}/.ssh/id_rsa"
+    ssh_private_key_path="${HOME}/.ssh/id_rsa"
+  elif [ -n "${input_CHECKOUT_KEY}" ]; then
+    ssh_private_key_path="${ssh_private_key_path_default}"
+    printf "%s" "${input_CHECKOUT_KEY}" >"${ssh_private_key_path}"
+    printf "%s\n" "- saved private key from env var"
+  elif ssh-add -l &>/dev/null; then
+    printf "%s\n" "- private key not provided, but identity already exist in the ssh-agent."
+    ssh-add -l
+  else
+    printf "${RED}%s${NC}\n" "No SSH identity provided (private key)."
+    exit 1
+  fi
+  if [ -n "${ssh_private_key_path}" ] && [ -f "${ssh_private_key_path}" ]; then
+    chmod 0600 "${ssh_private_key_path}"
+    ssh-add "${ssh_private_key_path}"
+  fi
+  printf "%s\n" ""
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... public key"
+  ssh_public_key_path_default="${ssh_config_dir}/id_rsa.pub"
+  local ssh_public_key_path=
+  if [ -n "${input_SSH_PUBLIC_KEY_PATH}" ]; then
+    if [ -f "${input_SSH_PUBLIC_KEY_PATH}" ]; then
+      ssh_public_key_path="${input_SSH_PUBLIC_KEY_PATH}"
+      printf "%s\n" "- found public key at given path (${input_SSH_PUBLIC_KEY_PATH})"
+    else
+      printf "${RED}%s${NC}\n" "Can not find public key at the given path (${input_SSH_PUBLIC_KEY_PATH})"
+      exit 1
+    fi
+  elif [ -n "${input_SSH_PUBLIC_KEY_B64}" ]; then
+    printf "%s\n" "- saved public key from env var SSH_PUBLIC_KEY_B64"
+    ssh_public_key_path="${ssh_public_key_path_default}"
+    echo "${input_SSH_PUBLIC_KEY_B64}" | base64 -d >"${ssh_public_key_path}"
+  elif [ -f "${HOME}/.ssh/id_rsa.pub" ]; then
+    printf "%s\n" "- found public key at ${HOME}/.ssh/id_rsa.pub"
+    ssh_public_key_path="${HOME}/.ssh/id_rsa.pub"
+  elif [ -n "${input_CHECKOUT_KEY_PUBLIC}" ]; then
+    ssh_public_key_path="${ssh_public_key_path_default}"
+    printf "%s" "${input_CHECKOUT_KEY_PUBLIC}" >"${ssh_public_key_path}"
+    printf "%s\n" "- saved public key from env var CHECKOUT_KEY_PUBLIC"
+  elif ssh-add -l &>/dev/null; then
+    printf "%s\n" "- public key not provided, but identity already exist in the ssh-agent."
+    ssh-add -l
+  else
+    printf "${RED}%s${NC}\n" "No SSH identity provided (public key)."
+    exit 1
+  fi
+  printf "%s\n" ""
+
+  # --- create known_hosts
+  local known_hosts="${ssh_config_dir}/known_hosts"
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... ${known_hosts}"
+  # BitBucket: https://bitbucket.org/site/ssh, https://bitbucket.org/blog/ssh-host-key-changes
+  # GitHub: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
+  # GitLab: https://docs.gitlab.com/ee/user/gitlab_com/#ssh-known_hosts-entries
+  {
+    cat <<-EOF
+bitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=
+bitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO
+bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=
+github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=
+gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf
+gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9
+ssh.github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+ssh.github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
+ssh.github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+ssh.github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
+EOF
+  } >>"${known_hosts}"
+  # alternatively we could just use: ssh-keyscan -H github.com >> ~/.ssh/known_hosts
+  chmod 0600 "${known_hosts}"
+  printf "%s\n" ""
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH...  misc settings"
+  # point out the private key and known_hosts (alternative to use config file)
+  local ssh_params=()
+  [ "${input_DEBUG_SSH}" = 1 ] && ssh_params+=("-v")
+  [ -n "${ssh_private_key_path}" ] && ssh_params+=("-i" "${ssh_private_key_path}")
+  ssh_params+=("-o" "UserKnownHostsFile=\"${known_hosts}\"")
+  # shellcheck disable=SC2155
+  export GIT_SSH="$(which ssh)"
+  export GIT_SSH_COMMAND="${GIT_SSH} ${ssh_params[*]}"
+  # use git+ssh instead of https
+  #git config --global url."ssh://git@github.com".insteadOf "https://github.com" || true
+  git config --global --unset-all url.ssh://git@github.com.insteadof || true
+  git config --global init.defaultBranch master
+  git config --global gc.auto 0 || true
+  printf "%s\n" ""
+
+  # --- validate
+  printf "${GREEN}%s${NC}\n" "Setting up SSH...  Validating GitHub authentication"
+  ssh "${ssh_params[@]}" -T git@github.com || case $? in
+    0) ;; # since we ssh github, it should never happen
+    1) ;; # ignore, 1 is here acceptable
+    *)
+      echo "ssh validation failed with exit code $?"
+      exit 1
+      ;;
+  esac
+  printf "%s\n" ""
+
+  printf "${GREEN}%s${NC}\n" "Setting up SSH... DONE"
+  printf "%s\n" ""
+}
+# source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs, setup_ssh # END
 
 #################################################
 #             ENVIRONMENT VARIABLES             #
@@ -280,151 +435,6 @@ fi
 #################################################
 #                   UTILITIES                   #
 #################################################
-
-setup_ssh() {
-  printf "${GREEN}%s${NC}\n" "Setting up SSH..."
-  # --- create SSH dir
-  printf "${GREEN}%s${NC}\n" "Setting up SSH... ${SSH_CONFIG_DIR}"
-  mkdir -p "${SSH_CONFIG_DIR}"
-  chmod 0700 "${SSH_CONFIG_DIR}"
-
-  # --- keys
-
-  # Note:
-  # CircleCI uses CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC in the build-in checkout.
-  # At least, they used it in the past when you could still preview their checkout script in CircleCI step.
-  # The code below assumes CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC could be available,
-  # but unless CircleCI change current policy (and start setting them) or orb client
-  # export these from step a before, they are not defined.
-  #
-  # To provide custom keys, you can use either:
-  # - CHECKOUT_KEY & CHECKOUT_KEY_PUBLIC or
-  # - SSH_PRIVATE_KEY_B64 and SSH_PUBLIC_KEY_B64.
-
-  printf "${GREEN}%s${NC}\n" "Setting up SSH... private key"
-  local ssh_private_key_path_default="${SSH_CONFIG_DIR}/id_rsa"
-  local ssh_private_key_path=
-  if [ -n "${SSH_PRIVATE_KEY_PATH}" ]; then
-    if [ -f "${SSH_PRIVATE_KEY_PATH}" ]; then
-      ssh_private_key_path="${SSH_PRIVATE_KEY_PATH}"
-      printf "%s\n" "- found private key at SSH_PRIVATE_KEY_PATH (${SSH_PRIVATE_KEY_PATH})"
-    else
-      printf "${RED}%s${NC}\n" "Can not find private key at path SSH_PRIVATE_KEY_PATH (${SSH_PRIVATE_KEY_PATH})"
-      exit 1
-    fi
-  elif (: "${SSH_PRIVATE_KEY_B64?}") 2>/dev/null; then
-    printf "%s\n" "- saved private key from env var SSH_PRIVATE_KEY_B64"
-    ssh_private_key_path="${ssh_private_key_path_default}"
-    echo "${SSH_PRIVATE_KEY_B64}" | base64 -d >"${ssh_private_key_path}"
-  elif [ -f "${HOME}/.ssh/id_rsa" ]; then
-    printf "%s\n" "- found private key at ${HOME}/.ssh/id_rsa"
-    ssh_private_key_path="${HOME}/.ssh/id_rsa"
-  elif (: "${CHECKOUT_KEY?}") 2>/dev/null; then
-    ssh_private_key_path="${ssh_private_key_path_default}"
-    printf "%s" "${CHECKOUT_KEY}" >"${ssh_private_key_path}"
-    printf "%s\n" "- saved private key from env var CHECKOUT_KEY"
-  elif ssh-add -l &>/dev/null; then
-    printf "%s\n" "- private key not provided, but identity already exist in the ssh-agent."
-    ssh-add -l
-  else
-    printf "${RED}%s${NC}\n" "No SSH identity provided (private key)."
-    exit 1
-  fi
-  if [ -n "${ssh_private_key_path}" ] && [ -f "${ssh_private_key_path}" ]; then
-    chmod 0600 "${ssh_private_key_path}"
-    ssh-add "${ssh_private_key_path}"
-  fi
-  printf "%s\n" ""
-
-  printf "${GREEN}%s${NC}\n" "Setting up SSH... public key"
-  ssh_public_key_path_default="${SSH_CONFIG_DIR}/id_rsa.pub"
-  local ssh_public_key_path=
-  if [ -n "${SSH_PUBLIC_KEY_PATH}" ]; then
-    if [ -f "${SSH_PUBLIC_KEY_PATH}" ]; then
-      ssh_public_key_path="${SSH_PUBLIC_KEY_PATH}"
-      printf "%s\n" "- found public key at SSH_PUBLIC_KEY_PATH (${SSH_PUBLIC_KEY_PATH})"
-    else
-      printf "${RED}%s${NC}\n" "Can not find public key at path SSH_PUBLIC_KEY_PATH (${SSH_PUBLIC_KEY_PATH})"
-      exit 1
-    fi
-  elif (: "${SSH_PUBLIC_KEY_B64?}") 2>/dev/null; then
-    printf "%s\n" "- saved public key from env var SSH_PUBLIC_KEY_B64"
-    ssh_public_key_path="${ssh_public_key_path_default}"
-    echo "${SSH_PUBLIC_KEY_B64}" | base64 -d >"${ssh_public_key_path}"
-  elif [ -f "${HOME}/.ssh/id_rsa.pub" ]; then
-    printf "%s\n" "- found public key at ${HOME}/.ssh/id_rsa.pub"
-    ssh_public_key_path="${HOME}/.ssh/id_rsa.pub"
-  elif (: "${CHECKOUT_KEY_PUBLIC?}") 2>/dev/null; then
-    ssh_public_key_path="${ssh_public_key_path_default}"
-    printf "%s" "${CHECKOUT_KEY_PUBLIC}" >"${ssh_public_key_path}"
-    printf "%s\n" "- saved public key from env var CHECKOUT_KEY_PUBLIC"
-  elif ssh-add -l &>/dev/null; then
-    printf "%s\n" "- public key not provided, but identity already exist in the ssh-agent."
-    ssh-add -l
-  else
-    printf "${RED}%s${NC}\n" "No SSH identity provided (public key)."
-    exit 1
-  fi
-  printf "%s\n" ""
-
-  # --- create known_hosts
-  local known_hosts="${SSH_CONFIG_DIR}/known_hosts"
-  printf "${GREEN}%s${NC}\n" "Setting up SSH... ${known_hosts}"
-  # BitBucket: https://bitbucket.org/site/ssh, https://bitbucket.org/blog/ssh-host-key-changes
-  # GitHub: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints
-  # GitLab: https://docs.gitlab.com/ee/user/gitlab_com/#ssh-known_hosts-entries
-  {
-    cat <<-EOF
-bitbucket.org ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBPIQmuzMBuKdWeF4+a2sjSSpBK0iqitSQ+5BM9KhpexuGt20JpTVM7u5BDZngncgrqDMbWdxMWWOGtZ9UgbqgZE=
-bitbucket.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIazEu89wgQZ4bqs3d63QSMzYVa0MuJ2e2gKTKqu+UUO
-bitbucket.org ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDQeJzhupRu0u0cdegZIa8e86EG2qOCsIsD1Xw0xSeiPDlCr7kq97NLmMbpKTX6Esc30NuoqEEHCuc7yWtwp8dI76EEEB1VqY9QJq6vk+aySyboD5QF61I/1WeTwu+deCbgKMGbUijeXhtfbxSxm6JwGrXrhBdofTsbKRUsrN1WoNgUa8uqN1Vx6WAJw1JHPhglEGGHea6QICwJOAr/6mrui/oB7pkaWKHj3z7d1IC4KWLtY47elvjbaTlkN04Kc/5LFEirorGYVbt15kAUlqGM65pk6ZBxtaO3+30LVlORZkxOh+LKL/BvbZ/iRNhItLqNyieoQj/uh/7Iv4uyH/cV/0b4WDSd3DptigWq84lJubb9t/DnZlrJazxyDCulTmKdOR7vs9gMTo+uoIrPSb8ScTtvw65+odKAlBj59dhnVp9zd7QUojOpXlL62Aw56U4oO+FALuevvMjiWeavKhJqlR7i5n9srYcrNV7ttmDw7kf/97P5zauIhxcjX+xHv4M=
-github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
-github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
-gitlab.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBFSMqzJeV9rUzU4kWitGjeR4PWSa29SPqJ1fVkhtj3Hw9xjLVXVYrU9QlYWrOLXBpQ6KWjbjTDTdDkoohFzgbEY=
-gitlab.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAfuCHKVTjquxvt6CM6tdG4SLp1Btn/nOeHHE5UOzRdf
-gitlab.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCsj2bNKTBSpIYDEGk9KxsGh3mySTRgMtXL583qmBpzeQ+jqCMRgBqB98u3z++J1sKlXHWfM9dyhSevkMwSbhoR8XIq/U0tCNyokEi/ueaBMCvbcTHhO7FcwzY92WK4Yt0aGROY5qX2UKSeOvuP4D6TPqKF1onrSzH9bx9XUf2lEdWT/ia1NEKjunUqu1xOB/StKDHMoX4/OKyIzuS0q/T1zOATthvasJFoPrAjkohTyaDUz2LN5JoH839hViyEG82yB+MjcFV5MU3N1l1QL3cVUCh93xSaua1N85qivl+siMkPGbO5xR/En4iEY6K2XPASUEMaieWVNTRCtJ4S8H+9
-ssh.github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-ssh.github.com ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBEmKSENjQEezOmxkZMy7opKgwFB9nkt5YRrYMjNuG5N87uRgg6CLrbo5wAdT/y6v0mKV0U2w0WZ2YB/++Tpockg=
-ssh.github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
-ssh.github.com ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCj7ndNxQowgcQnjshcLrqPEiiphnt+VTTvDP6mHBL9j1aNUkY4Ue1gvwnGLVlOhGeYrnZaMgRK6+PKCUXaDbC7qtbW8gIkhL7aGCsOr/C56SJMy/BCZfxd1nWzAOxSDPgVsmerOBYfNqltV9/hWCqBywINIR+5dIg6JTJ72pcEpEjcYgXkE2YEFXV1JHnsKgbLWNlhScqb2UmyRkQyytRLtL+38TGxkxCflmO+5Z8CSSNY7GidjMIZ7Q4zMjA2n1nGrlTDkzwDCsw+wqFPGQA179cnfGWOWRVruj16z6XyvxvjJwbz0wQZ75XK5tKSb7FNyeIEs4TT4jk+S4dhPeAUC5y+bDYirYgM4GC7uEnztnZyaVWQ7B381AK4Qdrwt51ZqExKbQpTUNn+EjqoTwvqNj4kqx5QUCI0ThS/YkOxJCXmPUWZbhjpCg56i+2aB6CmK2JGhn57K5mj0MNdBXA4/WnwH6XoPWJzK5Nyu2zB3nAZp+S5hpQs+p1vN1/wsjk=
-EOF
-  } >>"${known_hosts}"
-  # alternatively we could just use: ssh-keyscan -H github.com >> ~/.ssh/known_hosts
-  chmod 0600 "${known_hosts}"
-  printf "%s\n" ""
-
-  printf "${GREEN}%s${NC}\n" "Setting up SSH...  misc settings"
-  # point out the private key and known_hosts (alternative to use config file)
-  local ssh_params=()
-  [ "${DEBUG_SSH}" = 1 ] && ssh_params+=("-v")
-  [ -n "${ssh_private_key_path}" ] && ssh_params+=("-i" "${ssh_private_key_path}")
-  ssh_params+=("-o" "UserKnownHostsFile=\"${known_hosts}\"")
-  # shellcheck disable=SC2155
-  export GIT_SSH="$(which ssh)"
-  export GIT_SSH_COMMAND="${GIT_SSH} ${ssh_params[*]}"
-  # use git+ssh instead of https
-  #git config --global url."ssh://git@github.com".insteadOf "https://github.com" || true
-  git config --global --unset-all url.ssh://git@github.com.insteadof || true
-  git config --global init.defaultBranch master
-  git config --global gc.auto 0 || true
-  printf "%s\n" ""
-
-  # --- validate
-  printf "${GREEN}%s${NC}\n" "Setting up SSH...  Validating GitHub authentication"
-  ssh "${ssh_params[@]}" -T git@github.com || case $? in
-    0) ;; # since we ssh github, it should never happen
-    1) ;; # ignore, 1 is here acceptable
-    *)
-      echo "ssh validation failed with exit code $?"
-      exit 1
-      ;;
-  esac
-  printf "%s\n" ""
-
-  printf "${GREEN}%s${NC}\n" "Setting up SSH... DONE"
-  printf "%s\n" ""
-}
 
 # $1 - dest
 repo_checkout() {
@@ -627,7 +637,17 @@ main() {
   # omit checkout when code already exist (e.g. mounted locally with -v param)
   if [ ! -e "${HOME}/code/.git" ]; then
     setup_git_lfs "${LFS_ENABLED}"
-    setup_ssh
+
+    GR_GIT__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
+      GR_GIT__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
+      GR_GIT__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
+      GR_GIT__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
+      GR_GIT__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
+      GR_GIT__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
+      GR_GIT__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
+      GR_GIT__DEBUG_SSH="${DEBUG_SSH:-}" \
+      setup_ssh
+
     repo_checkout "${DEST_DIR}"
   fi
 }
