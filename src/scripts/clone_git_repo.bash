@@ -21,12 +21,14 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@4ae5350"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@8b428f7"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@4ae5350/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@4ae5350/lib/git.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/circleci.bash
+source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images
+# shellcheck source=.github_deps/rynkowsg/shell-gr@8b428f7/lib/git.bash
 source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs
 
 #################################################
@@ -34,13 +36,6 @@ source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lf
 #################################################
 
 # vars that should be provided by system
-
-# Workaround old docker images with incorrect $HOME
-# check https://github.com/docker/docker/issues/2968 for details
-if [ -z "${HOME}" ] || [ "${HOME}" = "/" ]; then
-  HOME="$(getent passwd "$(id -un)" | cut -d: -f6)"
-  export HOME
-fi
 
 # vars that can be provided:
 # - by user in orb params
@@ -511,6 +506,7 @@ EOF
 #################################################
 
 main() {
+  fix_home_in_old_images
   # omit checkout when code already exist (e.g. mounted locally with -v param)
   if [ ! -e "${HOME}/code/.git" ]; then
     setup_git_lfs "${LFS_ENABLED}"
