@@ -21,15 +21,19 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@30257df"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@aaef6de"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/circleci.bash
 source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info
-# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/git.bash
-source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs, setup_ssh
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/git_lfs.bash
+source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/github.bash
+source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/ssh.bash
+source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh
 
 #################################################
 #             ENVIRONMENT VARIABLES             #
@@ -367,14 +371,14 @@ main() {
   if [ ! -e "${HOME}/code/.git" ]; then
     setup_git_lfs "${LFS_ENABLED}"
 
-    GR_GIT__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
-      GR_GIT__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
-      GR_GIT__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
-      GR_GIT__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
-      GR_GIT__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
-      GR_GIT__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
-      GR_GIT__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
-      GR_GIT__DEBUG_SSH="${DEBUG_SSH:-}" \
+    GR_SSH__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
+      GR_SSH__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
+      GR_SSH__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
+      GR_SSH__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
+      GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
+      GR_SSH__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
+      GR_SSH__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
+      GR_SSH__DEBUG_SSH="${DEBUG_SSH:-}" \
       setup_ssh
 
     repo_checkout "${DEST_DIR}"

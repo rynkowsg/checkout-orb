@@ -21,10 +21,10 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@30257df"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@aaef6de"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
 
@@ -38,7 +38,7 @@ RED=$(printf '\033[31m')
 YELLOW=$(printf '\033[33m')
 NC=$(printf '\033[0m')
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/circleci.bash
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
 
@@ -88,8 +88,8 @@ print_common_debug_info() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@30257df/lib/git.bash
-# source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs, setup_ssh # BEGIN
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/git_lfs.bash
+# source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # BEGIN
 #!/usr/bin/env bash
 
 # Path Initialization
@@ -130,6 +130,10 @@ setup_git_lfs() {
   fi
   printf "%s\n" ""
 }
+# source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # END
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/github.bash
+# source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # BEGIN
+#!/usr/bin/env bash
 
 # Returns GitHub authorized URL if github token provided.
 # Otherwise returns same URL.
@@ -145,16 +149,33 @@ github_authorized_repo_url() {
     echo "${repo_url}"
   fi
 }
+# source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # END
+# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/ssh.bash
+# source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # BEGIN
+#!/usr/bin/env bash
+
+# Path Initialization
+if [ -n "${SHELL_GR_DIR}" ]; then
+  _SHELL_GR_DIR="${SHELL_GR_DIR}"
+else
+  _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
+  _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
+  _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
+  _ROOT_DIR="$(cd "${_SCRIPT_DIR}/.." && pwd -P || exit 1)"
+  _SHELL_GR_DIR="${_ROOT_DIR}"
+fi
+# Library Sourcing
+# source "${_SHELL_GR_DIR}/lib/color.bash" # GREEN, NC, RED # SKIPPED
 
 setup_ssh() {
-  local -r input_SSH_CONFIG_DIR="${GR_GIT__SSH_CONFIG_DIR:-}"
-  local -r input_SSH_PRIVATE_KEY_PATH="${GR_GIT__SSH_PRIVATE_KEY_PATH:-}"
-  local -r input_SSH_PUBLIC_KEY_PATH="${GR_GIT__SSH_PUBLIC_KEY_PATH:-}"
-  local -r input_SSH_PRIVATE_KEY_B64="${GR_GIT__SSH_PRIVATE_KEY_B64:-}"
-  local -r input_CHECKOUT_KEY="${GR_GIT__CHECKOUT_KEY:-}"
-  local -r input_CHECKOUT_KEY_PUBLIC="${GR_GIT__CHECKOUT_KEY_PUBLIC:-}"
-  local -r input_SSH_PUBLIC_KEY_B64="${GR_GIT__SSH_PUBLIC_KEY_B64:-}"
-  local -r input_DEBUG_SSH="${GR_GIT__DEBUG_SSH:-}"
+  local -r input_SSH_CONFIG_DIR="${GR_SSH__SSH_CONFIG_DIR:-}"
+  local -r input_SSH_PRIVATE_KEY_PATH="${GR_SSH__SSH_PRIVATE_KEY_PATH:-}"
+  local -r input_SSH_PUBLIC_KEY_PATH="${GR_SSH__SSH_PUBLIC_KEY_PATH:-}"
+  local -r input_SSH_PRIVATE_KEY_B64="${GR_SSH__SSH_PRIVATE_KEY_B64:-}"
+  local -r input_CHECKOUT_KEY="${GR_SSH__CHECKOUT_KEY:-}"
+  local -r input_CHECKOUT_KEY_PUBLIC="${GR_SSH__CHECKOUT_KEY_PUBLIC:-}"
+  local -r input_SSH_PUBLIC_KEY_B64="${GR_SSH__SSH_PUBLIC_KEY_B64:-}"
+  local -r input_DEBUG_SSH="${GR_SSH__DEBUG_SSH:-}"
 
   printf "${GREEN}%s${NC}\n" "Setting up SSH..."
   # --- create SSH dir
@@ -300,7 +321,7 @@ EOF
   printf "${GREEN}%s${NC}\n" "Setting up SSH... DONE"
   printf "%s\n" ""
 }
-# source "${SHELL_GR_DIR}/lib/git.bash" # github_authorized_repo_url, setup_git_lfs, setup_ssh # END
+# source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # END
 
 #################################################
 #             ENVIRONMENT VARIABLES             #
@@ -638,14 +659,14 @@ main() {
   if [ ! -e "${HOME}/code/.git" ]; then
     setup_git_lfs "${LFS_ENABLED}"
 
-    GR_GIT__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
-      GR_GIT__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
-      GR_GIT__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
-      GR_GIT__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
-      GR_GIT__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
-      GR_GIT__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
-      GR_GIT__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
-      GR_GIT__DEBUG_SSH="${DEBUG_SSH:-}" \
+    GR_SSH__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
+      GR_SSH__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
+      GR_SSH__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
+      GR_SSH__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
+      GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
+      GR_SSH__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
+      GR_SSH__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
+      GR_SSH__DEBUG_SSH="${DEBUG_SSH:-}" \
       setup_ssh
 
     repo_checkout "${DEST_DIR}"
