@@ -18,7 +18,7 @@ set -euo pipefail
 # Path Initialization
 if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
-  SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ ^(/bin/)?(ba)?sh$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
+  SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
   SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@aaef6de"
