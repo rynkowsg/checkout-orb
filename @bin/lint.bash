@@ -16,8 +16,8 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P || exit 1)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd -P || exit 1)"
 # Library Sourcing
-SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@aaef6de"}"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/tool/lint.bash
+SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@5a6105b"}"
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/tool/lint.bash
 source "${SHELL_GR_DIR}/lib/tool/lint.bash" # lint
 
 main() {

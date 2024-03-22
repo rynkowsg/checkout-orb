@@ -21,18 +21,20 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@aaef6de"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@5a6105b"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/circleci.bash
 source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info
-# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/git_checkout_advanced.bash
+source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/git_lfs.bash
 source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs
-# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/github.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/github.bash
 source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url
-# shellcheck source=.github_deps/rynkowsg/shell-gr@aaef6de/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/ssh.bash
 source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh
 
 #################################################
@@ -166,223 +168,36 @@ if [ -z "${REPO_SHA1}" ]; then
 fi
 
 #################################################
-#                   UTILITIES                   #
-#################################################
-
-# $1 - dest
-repo_checkout() {
-  local -r dest="${1}"
-  # To facilitate cloning shallow repo for branch, tag or particular sha,
-  # we don't use `git clone`, but combination of `git init` & `git fetch`.
-  printf "${GREEN}%s${NC}\n" "Creating clean git repo..."
-  printf "%s\n" "- repo_url: ${REPO_URL}"
-  printf "%s\n" "- dst: ${dest}"
-  printf "%s\n" ""
-
-  # --- check dest directory
-  mkdir -p "${dest}"
-  if [ "$(ls -A "${dest}")" ]; then
-    printf "${YELLOW}%s${NC}\n" "Directory \"${dest}\" is not empty."
-    ls -Al "${dest}"
-    printf "%s\n" ""
-  fi
-  # --- init repo
-  cd "${dest}"
-  # Skip smudge to download binary files later in a faster batch
-  [ "${LFS_ENABLED}" = 1 ] && git lfs install --skip-smudge
-  # --skip-smudge
-  local repo_url
-  repo_url="$(github_authorized_repo_url "${REPO_URL}" "${GITHUB_TOKEN}")"
-  if [[ "${repo_url}" != "${REPO_URL}" ]]; then
-    printf "${GREEN}%s${NC}\n" "Detected GitHub token. Update:"
-    printf "%s\n" "- repo_url: ${repo_url}"
-  fi
-  git init
-  git remote add origin "${repo_url}"
-  [ "${LFS_ENABLED}" = 1 ] && git lfs install --local --skip-smudge
-  if [ "${DEBUG_GIT}" = 1 ]; then
-    if [ "${LFS_ENABLED}" = 1 ]; then
-      printf "${YELLOW}%s${NC}\n" "[LOGS] git lfs env"
-      git lfs env
-    fi
-    printf "${YELLOW}%s${NC}\n" "[LOGS] git config -l"
-    [ -f /etc/gitconfig ] && git config -l --system | sort
-    git config -l --global | sort
-    git config -l --worktree | sort
-    git config -l --local | sort
-  fi
-  printf "%s\n" ""
-
-  fetch_params=()
-  [ "${DEPTH}" -ne -1 ] && fetch_params+=("--depth" "${DEPTH}")
-  fetch_params_serialized="$(
-    IFS=,
-    echo "${fetch_params[*]}"
-  )"
-  # create fetch_repo_script
-  local fetch_repo_script
-  fetch_repo_script="$(create_fetch_repo_script)"
-  # start checkout
-  if [ -n "${REPO_TAG+x}" ] && [ -n "${REPO_TAG}" ]; then
-    printf "${GREEN}%s${NC}\n" "Fetching & checking out tag..."
-    git fetch "${fetch_params[@]}" origin "refs/tags/${REPO_TAG}:refs/tags/${REPO_TAG}"
-    git -c advice.detachedHead=false checkout --force "${REPO_TAG}"
-    git reset --hard "${REPO_SHA1}"
-  elif [ -n "${REPO_BRANCH+x}" ] && [ -n "${REPO_BRANCH}" ] && [ -n "${REPO_SHA1+x}" ] && [ -n "${REPO_SHA1}" ]; then
-    printf "${GREEN}%s${NC}\n" "Fetching & checking out branch..."
-    bash "${fetch_repo_script}" "${DEBUG}" "${fetch_params_serialized}" "refs/heads/${REPO_BRANCH}:refs/remotes/origin/${REPO_BRANCH}" "${REPO_BRANCH}" "${REPO_SHA1}"
-  else
-    printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository."
-    printf "${RED}%s${NC}\n" "Need to specify REPO_TAG to fetch by tag or REPO_BRANCH and REPO_SHA1 to fetch by branch."
-    exit 1
-  fi
-  submodule_update_params=("--init" "--recursive")
-  [ "${SUBMODULES_DEPTH}" -ne -1 ] && submodule_update_params+=("--depth" "${SUBMODULES_DEPTH}")
-  [ "${SUBMODULES_ENABLED}" = 1 ] && git submodule update "${submodule_update_params[@]}"
-  if [ "${LFS_ENABLED}" = 1 ]; then
-    git lfs pull
-    if [ "${SUBMODULES_ENABLED}" = 1 ]; then
-      local fetch_lfs_in_submodule
-      fetch_lfs_in_submodule="$(mktemp -t "checkout-fetch_lfs_in_submodule-$(date +%Y%m%d_%H%M%S)-XXXXX")"
-      # todo: add cleanup
-      cat <<-EOF >"${fetch_lfs_in_submodule}"
-if [ -f .gitattributes ] && grep -q "filter=lfs" .gitattributes; then
-  git lfs install --local --skip-smudge
-  git lfs pull
-else
-  echo "Skipping submodule without LFS or .gitattributes"
-fi
-EOF
-      git submodule foreach --recursive "bash \"${fetch_lfs_in_submodule}\""
-    fi
-  fi
-  printf "%s\n" ""
-
-  printf "${GREEN}%s${NC}\n" "Summary"
-  git --no-pager log --no-color -n 1 --format="HEAD is now at %h %s"
-  printf "%s\n" ""
-}
-
-create_fetch_repo_script() {
-  local fetch_repo_script
-  fetch_repo_script="$(mktemp -t "checkout-fetch_repo-$(date +%Y%m%d_%H%M%S)-XXXXX")"
-  # todo: add cleanup
-  cat <<-'EOF' >"${fetch_repo_script}"
-DEBUG=${1:-0}
-[ "${DEBUG}" = 1 ] && set -x
-FETCH_PARAMS_SERIALIZED="${2}"
-REFSPEC="${3}"
-BRANCH="${4}"
-SHA1="${5}"
-
-GREEN=$(printf '\033[32m')
-RED=$(printf '\033[31m')
-YELLOW=$(printf '\033[33m')
-NC=$(printf '\033[0m')
-
-fetch_repo() {
-  local fetch_params_serialized="${1}"
-  local refspec="${2}"
-  local branch="${3}"
-  local sha1="${4}"
-
-  IFS=',' read -r -a fetch_params <<< "${fetch_params_serialized}"
-
-  # Find depth in fetch_params
-  local depth_specified=0
-  local depth=
-  for ((i = 0; i < ${#fetch_params[@]}; i++)); do
-    if [[ ${fetch_params[i]} == "--depth" ]]; then
-      depth_specified=1
-      depth=${fetch_params[i+1]}
-    fi
-  done
-
-  # fetch
-  git fetch "${fetch_params[@]}" origin "${refspec}"
-
-  local checkout_error checkout_status
-  # Try to checkout
-  checkout_error=$(git checkout --force -B "${branch}" "${sha1}" 2>&1)
-  checkout_status=$?
-
-  if [ ${checkout_status} -eq 0 ]; then
-    message=$([ ${depth_specified} == 0 ] && echo "Full checkout succeeded." || echo "Shallow checkout succeeded.")
-    printf "${GREEN}%s${NC}\n" "${message}"
-  else
-    printf "${RED}%s${NC}\n" "Checkout failed with status: ${checkout_status}"
-    if [[ $checkout_error == *"is not a commit and a branch"* ]]; then
-      printf "${RED}%s${NC}\n" "Commit not found, deepening..."
-      local commit_found=false
-      # Deepen the clone until the commit is found or a limit is reached
-      for i in {1..10}; do
-        printf "${YELLOW}%s${NC}\n" "Deepening attempt ${i}: by 10 commits"
-        git fetch --deepen 10
-        # Try to checkout again
-        checkout_error=$(git checkout --force -B "${branch}" "${sha1}" 2>&1)
-        checkout_status=$?
-        if [ $checkout_status -eq 0 ]; then
-          printf "${GREEN}%s${NC}\n" "Checkout succeeded after deepening."
-          commit_found=true
-          break
-        elif [[ $checkout_error == *"is not a commit and a branch"* ]]; then
-          # same error, commit still not found
-          :
-        else
-          # If the error is not about the commit being missing, break the loop
-          printf "${RED}%s${NC}\n" "Checkout failed with an unexpected error: $checkout_error"
-          break
-        fi
-      done
-
-      if [[ $commit_found != true ]]; then
-        printf "${RED}%s${NC}\n" "Failed to find commit after deepening. Fetching the full history..."
-        git fetch --unshallow
-        checkout_error=$(git checkout --force -B "${branch}" "${sha1}")
-        checkout_status=$?
-        if [ $checkout_status -eq 0 ]; then
-          printf "${GREEN}%s${NC}\n" "Checkout succeeded after full fetch."
-        else
-          printf "${RED}%s${NC}\n" "Full checkout failed."
-          exit ${checkout_status}
-        fi
-      fi
-
-    else
-      echo "Checkout failed with an unexpected error: $checkout_error"
-      exit 1
-    fi
-  fi
-}
-
-fetch_repo "${FETCH_PARAMS_SERIALIZED}" "${REFSPEC}" "${BRANCH}" "${SHA1}"
-EOF
-  echo "${fetch_repo_script}"
-}
-
-#################################################
 #                     MAIN                      #
 #################################################
 
 main() {
   fix_home_in_old_images
   print_common_debug_info "$@"
-  # omit checkout when code already exist (e.g. mounted locally with -v param)
-  if [ ! -e "${HOME}/code/.git" ]; then
-    setup_git_lfs "${LFS_ENABLED}"
+  setup_git_lfs "${LFS_ENABLED}"
 
+  GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
+    GR_SSH__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
+    GR_SSH__DEBUG_SSH="${DEBUG_SSH:-}" \
     GR_SSH__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
-      GR_SSH__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
-      GR_SSH__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
-      GR_SSH__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
-      GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
-      GR_SSH__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
-      GR_SSH__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
-      GR_SSH__DEBUG_SSH="${DEBUG_SSH:-}" \
-      setup_ssh
+    GR_SSH__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
+    GR_SSH__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
+    GR_SSH__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
+    GR_SSH__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
+    setup_ssh
 
-    repo_checkout "${DEST_DIR}"
-  fi
+  GR_GITCO__DEBUG="${DEBUG:-}" \
+    GR_GITCO__DEBUG_GIT="${DEBUG_GIT:-}" \
+    GR_GITCO__DEPTH="${DEPTH:-}" \
+    GR_GITCO__DEST_DIR="${DEST_DIR:-}" \
+    GR_GITCO__LFS_ENABLED="${LFS_ENABLED:-}" \
+    GR_GITCO__REPO_BRANCH="${REPO_BRANCH:-}" \
+    GR_GITCO__REPO_SHA1="${REPO_SHA1:-}" \
+    GR_GITCO__REPO_TAG="${REPO_TAG:-}" \
+    GR_GITCO__REPO_URL="${REPO_URL:-}" \
+    GR_GITCO__SUBMODULES_DEPTH="${SUBMODULES_DEPTH:-}" \
+    GR_GITCO__SUBMODULES_ENABLED="${SUBMODULES_ENABLED:-}" \
+    git_checkout_advanced
 }
 
 if [[ "${BASH_SOURCE[0]:-}" == "${0}" ]] || [[ "${CIRCLECI}" == "true" ]]; then
