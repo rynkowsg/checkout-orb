@@ -567,19 +567,16 @@ EOF
 # source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # END
 
 #################################################
-#             ENVIRONMENT VARIABLES             #
+#                    INPUTS                     #
 #################################################
 
-# vars that should be provided by system
-
+# All parameters to the script comes from environment variables.
 # vars that can be provided:
 # - by user in orb params
 # - by user in environment vars by previous steps
 # - by CircleCI in their environment vars
-#
-# All params from orb are prefixed with PARAM_.
-#
-# The params we expect to see from CircleCI are:
+##
+# The params we expect that could be provided by CircleCI are:
 # - CHECKOUT_KEY - private key
 # - CHECKOUT_KEY_PUBLIC - public key
 # - CIRCLE_BRANCH - branch specified by CircleCI
@@ -588,113 +585,129 @@ EOF
 # - CIRCLE_TAG - tag specified by CircleCI
 # - CIRCLE_WORKING_DIRECTORY - working directory
 #
-
+# Rest is provided either from orb params, or via user defined
+# environment parameters in previous steps.
+#
+# All params from orb are prefixed with PARAM_.
+#
 # When assigning final value, we prioritise orb params,
 # then env variables, and at the end CircleCI-specific variables.
+#
+# To see the exact list of expected env variables, read content of init_input_vars_* functions.
 
-DEBUG=${PARAM_DEBUG:-${DEBUG:-0}}
-DEBUG_SSH=${DEBUG_SSH:-0}
-DEBUG_GIT=${DEBUG_GIT:-0}
-if [ "${DEBUG}" = 1 ]; then
-  set -x
-  printenv | sort
-fi
-if [ "${DEBUG_SSH}" = 1 ]; then
-  ssh-add -l
-  ssh-add -L
-fi
-if [ "${DEBUG_GIT}" = 1 ]; then
-  export GIT_TRACE=1
-  export GIT_CURL_VERBOSE=1
-fi
+init_input_vars_debug() {
+  DEBUG=${PARAM_DEBUG:-${DEBUG:-0}}
+  DEBUG_GIT=${DEBUG_GIT:-0}
+  DEBUG_SSH=${DEBUG_SSH:-0}
+  printf "${GREEN}%s${NC}\n" "Debug variables:"
+  printf "%s\n" "- DEBUG=${DEBUG}"
+  printf "%s\n" "- DEBUG_GIT=${DEBUG_GIT}"
+  printf "%s\n" "- DEBUG_SSH=${DEBUG_SSH}"
 
-# repo coordinates, if not specified takes coordinates from CircleCI variables
-REPO_URL=${PARAM_REPO_URL:-${REPO_URL:-${CIRCLE_REPOSITORY_URL:-}}}
-# If run from CircleCI, variables CIRCLE_REPOSITORY_URL and CIRCLE_SHA1 is
-# always provided, while CIRCLE_TAG and CIRCLE_BRANCH are depend on whether
-# the build is triggered by a tag or a branch, respectively..
+  if [ "${DEBUG}" = 1 ]; then
+    set -x
+    printenv | sort
+  fi
+  if [ "${DEBUG_SSH}" = 1 ]; then
+    ssh-add -l
+    ssh-add -L
+  fi
+  if [ "${DEBUG_GIT}" = 1 ]; then
+    export GIT_TRACE=1
+    export GIT_CURL_VERBOSE=1
+  fi
+}
 
-if [ "${REPO_URL}" == "${CIRCLE_REPOSITORY_URL}" ]; then
-  # if REPO_URL & CIRCLE_REPOSITORY_URL are same, we clone the repo triggering the CI.
-  REPO_BRANCH=${PARAM_REPO_BRANCH:-${REPO_BRANCH:-${CIRCLE_BRANCH:-}}}
-  REPO_TAG=${PARAM_REPO_TAG:-${REPO_TAG:-${CIRCLE_TAG:-}}}
-  REPO_SHA1=${PARAM_REPO_SHA1:-${REPO_SHA1:-${CIRCLE_SHA1:-}}}
-else
-  # otherwise we clone other repo then the repo triggering the CI.
-  # In such case repo coordinates should be given.
-  REPO_BRANCH=${PARAM_REPO_BRANCH:-${REPO_BRANCH:-}}
-  REPO_TAG=${PARAM_REPO_TAG:-${REPO_TAG:-}}
-  REPO_SHA1=${PARAM_REPO_SHA1:-${REPO_SHA1:-}}
-  # Example: If we used CIRCLE_ env as defaults here, we could end up with situation that
-  # CI repo is triggered by TAG. In the workflow it clones other repo by branch,
-  # but since CIRCLE_TAG exists, it will try to clone tag that doesn't exist.
-fi
+init_input_vars_ssh() {
+  CHECKOUT_KEY="${CHECKOUT_KEY:-}"
+  CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}"
+  SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}"
+  SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}"
+  SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}"
+  SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}"
+  SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}"
 
-DEPTH=${PARAM_DEPTH:--1}
-SUBMODULES_DEPTH=${PARAM_SUBMODULES_DEPTH:--1}
+  #SSH_PRIVATE_KEY_B64 - SSH private key encoded in Base64 (optional), provided by context
+  #SSH_PUBLIC_KEY_B64 - SSH public key encoded in Base64 (optional), provided by context
 
-# DEST_DIR - destination for repo
-#     If not provided in orb param, try DEST_DIR env var.
-#     If DEST_DIR not available, try CIRCLE_WORKING_DIRECTORY.
-#     If also this one missing, try current directory.
-DEST_DIR=${PARAM_DEST_DIR:-${DEST_DIR:-${CIRCLE_WORKING_DIRECTORY:-.}}}
-# eval to resolve ~ in the path
-eval DEST_DIR="${DEST_DIR}"
+  printf "${GREEN}%s${NC}\n" "SSH variables:"
+  printf "%s\n" "- CHECKOUT_KEY=${CHECKOUT_KEY}"
+  printf "%s\n" "- CHECKOUT_KEY_PUBLIC=${CHECKOUT_KEY_PUBLIC}"
+  printf "%s\n" "- SSH_CONFIG_DIR=${SSH_CONFIG_DIR}"
+  printf "%s\n" "- SSH_PRIVATE_KEY_B64=${SSH_PRIVATE_KEY_B64}"
+  printf "%s\n" "- SSH_PRIVATE_KEY_PATH=${SSH_PRIVATE_KEY_PATH}"
+  printf "%s\n" "- SSH_PUBLIC_KEY_B64=${SSH_PUBLIC_KEY_B64}"
+  printf "%s\n" "- SSH_PUBLIC_KEY_PATH=${SSH_PUBLIC_KEY_PATH}"
+  printf "%s\n" ""
+}
 
-# GITHUB_TOKEN - from env vars, e.g. from context or project env vars
-# GITHUB_TOKEN_PARAM - from orb command params
-# prefer the latter, if not available, try to take the former
-GITHUB_TOKEN=${PARAM_GITHUB_TOKEN:-${GITHUB_TOKEN:-}}
+init_input_vars_checkout() {
+  # repo coordinates, if not specified takes coordinates from CircleCI variables
+  REPO_URL=${PARAM_REPO_URL:-${REPO_URL:-${CIRCLE_REPOSITORY_URL:-}}}
+  # If run from CircleCI, variables CIRCLE_REPOSITORY_URL and CIRCLE_SHA1 is
+  # always provided, while CIRCLE_TAG and CIRCLE_BRANCH are depend on whether
+  # the build is triggered by a tag or a branch, respectively..
 
-# SUBMODULES_ENABLED - submodules support, if not specified, set to false
-SUBMODULES_ENABLED=${PARAM_SUBMODULES_ENABLED:-${SUBMODULES_ENABLED:-0}}
+  if [ "${REPO_URL}" == "${CIRCLE_REPOSITORY_URL}" ]; then
+    # if REPO_URL & CIRCLE_REPOSITORY_URL are same, we clone the repo triggering the CI.
+    REPO_BRANCH=${PARAM_REPO_BRANCH:-${REPO_BRANCH:-${CIRCLE_BRANCH:-}}}
+    REPO_TAG=${PARAM_REPO_TAG:-${REPO_TAG:-${CIRCLE_TAG:-}}}
+    REPO_SHA1=${PARAM_REPO_SHA1:-${REPO_SHA1:-${CIRCLE_SHA1:-}}}
+  else
+    # otherwise we clone other repo then the repo triggering the CI.
+    # In such case repo coordinates should be given.
+    REPO_BRANCH=${PARAM_REPO_BRANCH:-${REPO_BRANCH:-}}
+    REPO_TAG=${PARAM_REPO_TAG:-${REPO_TAG:-}}
+    REPO_SHA1=${PARAM_REPO_SHA1:-${REPO_SHA1:-}}
+    # Example: If we used CIRCLE_ env as defaults here, we could end up with situation that
+    # CI repo is triggered by TAG. In the workflow it clones other repo by branch,
+    # but since CIRCLE_TAG exists, it will try to clone tag that doesn't exist.
+  fi
 
-# LFS_ENABLED - Git LFS support, if not specified, set to false
-LFS_ENABLED=${PARAM_LFS_ENABLED:-${LFS_ENABLED:-0}}
+  DEPTH=${PARAM_DEPTH:--1}
+  SUBMODULES_DEPTH=${PARAM_SUBMODULES_DEPTH:--1}
 
-SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-${HOME}/.ssh}"
-SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}"
-SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}"
+  # DEST_DIR - destination for repo
+  #     If not provided in orb param, try DEST_DIR env var.
+  #     If DEST_DIR not available, try CIRCLE_WORKING_DIRECTORY.
+  #     If also this one missing, try current directory.
+  DEST_DIR=${PARAM_DEST_DIR:-${DEST_DIR:-${CIRCLE_WORKING_DIRECTORY:-.}}}
+  # eval to resolve ~ in the path
+  eval DEST_DIR="${DEST_DIR}"
 
-#SSH_PRIVATE_KEY_B64 - SSH private key encoded in Base64 (optional), provided by context
-#SSH_PUBLIC_KEY_B64 - SSH public key encoded in Base64 (optional), provided by context
+  # GITHUB_TOKEN - from env vars, e.g. from context or project env vars
+  # GITHUB_TOKEN_PARAM - from orb command params
+  # prefer the latter, if not available, try to take the former
+  GITHUB_TOKEN=${PARAM_GITHUB_TOKEN:-${GITHUB_TOKEN:-}}
 
-printf "${GREEN}%s${NC}\n" "Environment variables - possible to provide via command params:"
-printf "%s\n" "DEBUG=${DEBUG:-}"
-printf "%s\n" "DEPTH=${DEPTH:-}"
-printf "%s\n" "DEST_DIR=${DEST_DIR:-}"
-printf "%s\n" "GITHUB_TOKEN=${GITHUB_TOKEN:-}"
-printf "%s\n" "LFS_ENABLED=${LFS_ENABLED:-}"
-printf "%s\n" "REPO_BRANCH=${REPO_BRANCH:-}"
-printf "%s\n" "REPO_SHA1=${REPO_SHA1:-}"
-printf "%s\n" "REPO_TAG=${REPO_TAG:-}"
-printf "%s\n" "REPO_URL=${REPO_URL:-}"
-printf "%s\n" "SUBMODULES_DEPTH=${SUBMODULES_DEPTH:-}"
-printf "%s\n" "SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-}"
-printf "%s\n" ""
+  # SUBMODULES_ENABLED - submodules support, if not specified, set to false
+  SUBMODULES_ENABLED=${PARAM_SUBMODULES_ENABLED:-${SUBMODULES_ENABLED:-0}}
 
-printf "${GREEN}%s${NC}\n" "Environment variables - rest:"
-printf "%s\n" "CHECKOUT_KEY=${CHECKOUT_KEY:-}"
-printf "%s\n" "CHECKOUT_KEY_PUBLIC=${CHECKOUT_KEY_PUBLIC:-}"
-printf "%s\n" "SSH_CONFIG_DIR=${SSH_CONFIG_DIR:-}"
-printf "%s\n" "SSH_PRIVATE_KEY_B64=${SSH_PRIVATE_KEY_B64:-}"
-printf "%s\n" "SSH_PRIVATE_KEY_PATH=${SSH_PRIVATE_KEY_PATH:-}"
-printf "%s\n" "SSH_PUBLIC_KEY_B64=${SSH_PUBLIC_KEY_B64:-}"
-printf "%s\n" "SSH_PUBLIC_KEY_PATH=${SSH_PUBLIC_KEY_PATH:-}"
-printf "%s\n" ""
+  # LFS_ENABLED - Git LFS support, if not specified, set to false
+  LFS_ENABLED=${PARAM_LFS_ENABLED:-${LFS_ENABLED:-0}}
 
-#################################################
-#      ENVIRONMENT VARIABLES - VALIDATION       #
-#################################################
+  printf "${GREEN}%s${NC}\n" "Checkout vars:"
+  printf "%s\n" "- DEPTH=${DEPTH:-}"
+  printf "%s\n" "- DEST_DIR=${DEST_DIR:-}"
+  printf "%s\n" "- GITHUB_TOKEN=${GITHUB_TOKEN:-}"
+  printf "%s\n" "- LFS_ENABLED=${LFS_ENABLED:-}"
+  printf "%s\n" "- REPO_BRANCH=${REPO_BRANCH:-}"
+  printf "%s\n" "- REPO_SHA1=${REPO_SHA1:-}"
+  printf "%s\n" "- REPO_TAG=${REPO_TAG:-}"
+  printf "%s\n" "- REPO_URL=${REPO_URL:-}"
+  printf "%s\n" "- SUBMODULES_DEPTH=${SUBMODULES_DEPTH:-}"
+  printf "%s\n" "- SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-}"
+  printf "%s\n" ""
 
-if [ -z "${REPO_BRANCH}" ] && [ -z "${REPO_TAG}" ]; then
-  printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository: either REPO_BRANCH or REPO_TAG is required."
-  exit 1
-fi
-if [ -z "${REPO_SHA1}" ]; then
-  printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository: REPO_SHA1 is always required."
-  exit 1
-fi
+  if [ -z "${REPO_BRANCH}" ] && [ -z "${REPO_TAG}" ]; then
+    printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository: either REPO_BRANCH or REPO_TAG is required."
+    exit 1
+  fi
+  if [ -z "${REPO_SHA1}" ]; then
+    printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository: REPO_SHA1 is always required."
+    exit 1
+  fi
+}
 
 #################################################
 #                     MAIN                      #
@@ -702,7 +715,12 @@ fi
 
 main() {
   fix_home_in_old_images
+
   print_common_debug_info "$@"
+  init_input_vars_debug
+  init_input_vars_ssh
+  init_input_vars_checkout
+
   setup_git_lfs "${LFS_ENABLED}"
 
   GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
