@@ -21,10 +21,10 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@5a6105b"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@77ce729"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
 
@@ -38,7 +38,7 @@ RED=$(printf '\033[31m')
 YELLOW=$(printf '\033[33m')
 NC=$(printf '\033[0m')
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/circleci.bash
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
 
@@ -88,7 +88,7 @@ print_common_debug_info() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/git_checkout_advanced.bash
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # BEGIN
 #!/usr/bin/env bash
 
@@ -103,14 +103,32 @@ else
   _SHELL_GR_DIR="${_ROOT_DIR}"
 fi
 # Library Sourcing
-# source "${_SHELL_GR_DIR}/lib/color.bash" # GREEN, NC, RED, YELLOW # SKIPPED
-# source "${_SHELL_GR_DIR}/lib/git.bash"   # is_git_repository # BEGIN
+# source "${_SHELL_GR_DIR}/lib/color.bash"  # GREEN, NC, RED, YELLOW # SKIPPED
+# source "${_SHELL_GR_DIR}/lib/git.bash"    # is_git_repository # BEGIN
 #!/usr/bin/env bash
 
 is_git_repository() {
   git rev-parse --git-dir >/dev/null 2>&1
 }
-# source "${_SHELL_GR_DIR}/lib/git.bash"   # is_git_repository # END
+# source "${_SHELL_GR_DIR}/lib/git.bash"    # is_git_repository # END
+# source "${_SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # BEGIN
+#!/usr/bin/env bash
+
+# Returns GitHub authorized URL if github token provided.
+# Otherwise returns same URL.
+# Params:
+# $1 - repo url
+# $2 - github token
+github_authorized_repo_url() {
+  local repo_url="${1}"
+  local github_token="${2}"
+  if [[ $repo_url == "https://github.com"* ]] && [[ -n "${github_token}" ]]; then
+    echo "https://${github_token}@${repo_url#https://}"
+  else
+    echo "${repo_url}"
+  fi
+}
+# source "${_SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # END
 
 # $1 - dest
 git_checkout_advanced() {
@@ -118,6 +136,7 @@ git_checkout_advanced() {
   local -r input_DEBUG_GIT="${GR_GITCO__DEBUG_GIT:-}"
   local -r input_DEPTH="${GR_GITCO__DEPTH:-}"
   local -r input_DEST_DIR="${GR_GITCO__DEST_DIR:-}"
+  local -r input_GITHUB_TOKEN="${GR_GITCO__GITHUB_TOKEN:-}"
   local -r input_LFS_ENABLED="${GR_GITCO__LFS_ENABLED:-}"
   local -r input_REPO_BRANCH="${GR_GITCO__REPO_BRANCH:-}"
   local -r input_REPO_SHA1="${GR_GITCO__REPO_SHA1:-}"
@@ -127,15 +146,17 @@ git_checkout_advanced() {
   local -r input_SUBMODULES_ENABLED="${GR_GITCO__SUBMODULES_ENABLED:-}"
 
   local -r debug="${input_DEBUG}"
-  local -r depth="${input_DEPTH}"
   local -r debug_git="${input_DEBUG_GIT}"
+  local -r depth="${input_DEPTH}"
   local -r dest="${input_DEST_DIR}"
+  local -r github_token="${input_GITHUB_TOKEN}"
   local -r lfs_enabled="${input_LFS_ENABLED}"
   local -r repo_branch="${input_REPO_BRANCH}"
-  local -r repo_tag="${input_REPO_TAG}"
   local -r repo_sha1="${input_REPO_SHA1}"
+  local -r repo_tag="${input_REPO_TAG}"
+
   local repo_url
-  repo_url="$(github_authorized_repo_url "${input_REPO_URL}" "${GITHUB_TOKEN}")"
+  repo_url="$(github_authorized_repo_url "${input_REPO_URL}" "${github_token}")"
   if [[ "${repo_url}" != "${input_REPO_URL}" ]]; then
     printf "${GREEN}%s${NC}\n" "Detected GitHub token. Update:"
     printf "%s\n" "- repo_url: ${repo_url}"
@@ -146,8 +167,8 @@ git_checkout_advanced() {
 
   # To facilitate cloning shallow repo for branch, tag or particular sha,
   # we don't use `git clone`, but combination of `git init` & `git fetch`.
-  printf "${GREEN}%s${NC}\n" "Creating clean git repo..."
-  printf "%s\n" "- repo_url: ${input_REPO_URL}"
+  printf "${GREEN}%s${NC}\n" "Establishing git repo..."
+  printf "%s\n" "- repo_url: ${repo_url}"
   printf "%s\n" "- dst: ${dest}"
   printf "%s\n" ""
 
@@ -201,7 +222,12 @@ git_checkout_advanced() {
     git reset --hard "${repo_sha1}"
   elif [ -n "${repo_branch}" ] && [ -n "${repo_sha1}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out branch..."
-    bash "${fetch_repo_script}" "${debug}" "${fetch_params_serialized}" "refs/heads/${repo_branch}:refs/remotes/origin/${repo_branch}" "${repo_branch}" "${repo_sha1}"
+    DEBUG="${debug}" \
+      TMP__FETCH_PARAMS_SERIALIZED="${fetch_params_serialized}" \
+      TMP__REFSPEC="refs/heads/${repo_branch}:refs/remotes/origin/${repo_branch}" \
+      TMP__BRANCH="${repo_branch}" \
+      TMP__SHA1="${repo_sha1}" \
+      bash "${fetch_repo_script}"
   else
     printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository."
     printf "${RED}%s${NC}\n" "Need to specify REPO_TAG to fetch by tag or REPO_BRANCH and REPO_SHA1 to fetch by branch."
@@ -239,12 +265,8 @@ create_fetch_repo_script() {
   fetch_repo_script="$(mktemp -t "checkout-fetch_repo-$(date +%Y%m%d_%H%M%S)-XXXXX")"
   # todo: add cleanup
   cat <<-'EOF' >"${fetch_repo_script}"
-DEBUG=${1:-0}
+DEBUG=${DEBUG:-0}
 [ "${DEBUG}" = 1 ] && set -x
-FETCH_PARAMS_SERIALIZED="${2}"
-REFSPEC="${3}"
-BRANCH="${4}"
-SHA1="${5}"
 
 GREEN=$(printf '\033[32m')
 RED=$(printf '\033[31m')
@@ -252,10 +274,10 @@ YELLOW=$(printf '\033[33m')
 NC=$(printf '\033[0m')
 
 fetch_repo() {
-  local fetch_params_serialized="${1}"
-  local refspec="${2}"
-  local branch="${3}"
-  local sha1="${4}"
+  local -r fetch_params_serialized="${TMP__FETCH_PARAMS_SERIALIZED}"
+  local -r refspec="${TMP__REFSPEC}"
+  local -r branch="${TMP__BRANCH}"
+  local -r sha1="${TMP__SHA1}"
 
   IFS=',' read -r -a fetch_params <<< "${fetch_params_serialized}"
 
@@ -326,12 +348,12 @@ fetch_repo() {
   fi
 }
 
-fetch_repo "${FETCH_PARAMS_SERIALIZED}" "${REFSPEC}" "${BRANCH}" "${SHA1}"
+fetch_repo
 EOF
   echo "${fetch_repo_script}"
 }
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/git_lfs.bash
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # BEGIN
 #!/usr/bin/env bash
 
@@ -374,26 +396,7 @@ setup_git_lfs() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/github.bash
-# source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # BEGIN
-#!/usr/bin/env bash
-
-# Returns GitHub authorized URL if github token provided.
-# Otherwise returns same URL.
-# Params:
-# $1 - repo url
-# $2 - github token
-github_authorized_repo_url() {
-  local repo_url="${1}"
-  local github_token="${2}"
-  if [[ $repo_url == "https://github.com"* ]] && [[ -n "${github_token}" ]]; then
-    echo "https://${github_token}@${repo_url#https://}"
-  else
-    echo "${repo_url}"
-  fi
-}
-# source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/ssh.bash
 # source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # BEGIN
 #!/usr/bin/env bash
 
@@ -603,14 +606,17 @@ init_input_vars_debug() {
   printf "%s\n" "- DEBUG=${DEBUG}"
   printf "%s\n" "- DEBUG_GIT=${DEBUG_GIT}"
   printf "%s\n" "- DEBUG_SSH=${DEBUG_SSH}"
+  printf "%s\n" ""
 
   if [ "${DEBUG}" = 1 ]; then
     set -x
     printenv | sort
+    printf "%s\n" ""
   fi
   if [ "${DEBUG_SSH}" = 1 ]; then
     ssh-add -l
     ssh-add -L
+    printf "%s\n" ""
   fi
   if [ "${DEBUG_GIT}" = 1 ]; then
     export GIT_TRACE=1
@@ -737,6 +743,7 @@ main() {
     GR_GITCO__DEBUG_GIT="${DEBUG_GIT:-}" \
     GR_GITCO__DEPTH="${DEPTH:-}" \
     GR_GITCO__DEST_DIR="${DEST_DIR:-}" \
+    GR_GITCO__GITHUB_TOKEN="${GITHUB_TOKEN:-}" \
     GR_GITCO__LFS_ENABLED="${LFS_ENABLED:-}" \
     GR_GITCO__REPO_BRANCH="${REPO_BRANCH:-}" \
     GR_GITCO__REPO_SHA1="${REPO_SHA1:-}" \

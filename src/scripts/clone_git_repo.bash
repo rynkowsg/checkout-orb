@@ -21,20 +21,18 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@5a6105b"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@77ce729"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/circleci.bash
 source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/git_checkout_advanced.bash
 source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/git_lfs.bash
 source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/github.bash
-source "${SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url
-# shellcheck source=.github_deps/rynkowsg/shell-gr@5a6105b/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/ssh.bash
 source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh
 
 #################################################
@@ -211,6 +209,7 @@ main() {
     GR_GITCO__DEBUG_GIT="${DEBUG_GIT:-}" \
     GR_GITCO__DEPTH="${DEPTH:-}" \
     GR_GITCO__DEST_DIR="${DEST_DIR:-}" \
+    GR_GITCO__GITHUB_TOKEN="${GITHUB_TOKEN:-}" \
     GR_GITCO__LFS_ENABLED="${LFS_ENABLED:-}" \
     GR_GITCO__REPO_BRANCH="${REPO_BRANCH:-}" \
     GR_GITCO__REPO_SHA1="${REPO_SHA1:-}" \
