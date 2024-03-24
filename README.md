@@ -16,7 +16,11 @@ What it does:
 
 - Supports shallow clones, so you can
   - grab just the latest commit if that's all you need, or
-  - get the last few commits, depending on what you need.
+  - get the last few commits, depending on what you need,
+  - supports smart deepen - if depth is too shallow, try 10 times to deepen.
+
+- Supports cloning to existed already repository
+  - e.g. if you persist or cache repository
 
 - Works with LFS (Large File Storage), so you can:
   - get LFS files in your repo, or
