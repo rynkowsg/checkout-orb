@@ -21,6 +21,12 @@ parameters:
     description: |
       Specifies the clone depth, indicating the number of recent commits to include.
       Default: -1 (fetches all commits).
+  depth_for_submodules:
+    type: integer
+    default: -1
+    description: |
+      Specifies the clone depth for submodules, indicating the number of recent commits to include.
+      Default: -1 (fetches all commits).
   dest_dir:
     type: string
     default: ""
@@ -32,11 +38,6 @@ parameters:
     default: ""
     description: |
       GitHub token. It can help to surpass connection quotas per machine.
-  lfs:
-    type: boolean
-    default: false
-    description:  |
-      Enables cloning with Git Large File Storage (LFS) support.
   name_displayed:
     type: string
     default: "checkout/checkout"
@@ -66,21 +67,16 @@ parameters:
     description: |
       Specifies the repository URL.
       Defaults to REPO_URL, then CIRCLE_REPOSITORY_URL if unset.
-  submodules:
+  with_lfs:
+    type: boolean
+    default: false
+    description: |
+      Enables cloning with Git Large File Storage (LFS) support.
+  with_submodules:
     type: boolean
     default: false
     description: |
       Enables cloning of submodules.
-  submodules_depth:
-    type: integer
-    default: -1
-    description: |
-      Specifies the clone depth for submodules, indicating the number of recent commits to include.
-      Default: -1 (fetches all commits).
-    # It is worth to remember that GitHub doesn't allow to fetch by SHA1.
-    # In such a case, with shallow clone, the required reference can't be found.
-    # https://github.com/boostorg/boost/issues/245#issuecomment-470716527
-
 
 steps:
   # when no custom bash provided
@@ -92,14 +88,15 @@ steps:
             environment:
               PARAM_DEBUG: <<parameters.debug>>
               PARAM_DEPTH: <<parameters.depth>>
+              PARAM_DEPTH_FOR_SUBMODULES: <<parameters.depth_for_submodules>>
               PARAM_DEST_DIR: <<parameters.dest_dir>>
               PARAM_GITHUB_TOKEN: <<parameters.github_token>>
-              PARAM_LFS_ENABLED: <<parameters.lfs>>
               PARAM_REPO_BRANCH: <<parameters.repo_branch>>
               PARAM_REPO_SHA1: <<parameters.repo_sha1>>
               PARAM_REPO_TAG: <<parameters.repo_tag>>
               PARAM_REPO_URL: <<parameters.repo_url>>
-              PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
+              PARAM_WITH_LFS: <<parameters.with_lfs>>
+              PARAM_WITH_SUBMODULES: <<parameters.with_submodules>>
             name: <<parameters.name_displayed>>
             command: <<include(scripts/gen/clone_git_repo.bash)>>
   # when custom bash provided
@@ -112,13 +109,14 @@ steps:
             environment:
               PARAM_DEBUG: <<parameters.debug>>
               PARAM_DEPTH: <<parameters.depth>>
+              PARAM_DEPTH_FOR_SUBMODULES: <<parameters.depth_for_submodules>>
               PARAM_DEST_DIR: <<parameters.dest_dir>>
               PARAM_GITHUB_TOKEN: <<parameters.github_token>>
-              PARAM_LFS_ENABLED: <<parameters.lfs>>
               PARAM_REPO_BRANCH: <<parameters.repo_branch>>
               PARAM_REPO_SHA1: <<parameters.repo_sha1>>
               PARAM_REPO_TAG: <<parameters.repo_tag>>
               PARAM_REPO_URL: <<parameters.repo_url>>
-              PARAM_SUBMODULES_ENABLED: <<parameters.submodules>>
+              PARAM_WITH_LFS: <<parameters.with_lfs>>
+              PARAM_WITH_SUBMODULES: <<parameters.with_submodules>>
             name: <<parameters.name_displayed>>
             command: <<include(scripts/gen/clone_git_repo.bash)>>

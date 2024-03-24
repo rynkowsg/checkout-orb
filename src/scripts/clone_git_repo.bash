@@ -21,18 +21,18 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@77ce729"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@b6f2f78"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@b6f2f78/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@b6f2f78/lib/circleci.bash
 source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info
-# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@b6f2f78/lib/git_checkout_advanced.bash
 source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced
-# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@b6f2f78/lib/git_lfs.bash
 source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs
-# shellcheck source=.github_deps/rynkowsg/shell-gr@77ce729/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@b6f2f78/lib/ssh.bash
 source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh
 
 #################################################
@@ -137,7 +137,7 @@ init_input_vars_checkout() {
   fi
 
   DEPTH=${PARAM_DEPTH:--1}
-  SUBMODULES_DEPTH=${PARAM_SUBMODULES_DEPTH:--1}
+  DEPTH_FOR_SUBMODULES=${PARAM_DEPTH_FOR_SUBMODULESH:--1}
 
   # DEST_DIR - destination for repo
   #     If not provided in orb param, try DEST_DIR env var.
@@ -152,23 +152,23 @@ init_input_vars_checkout() {
   # prefer the latter, if not available, try to take the former
   GITHUB_TOKEN=${PARAM_GITHUB_TOKEN:-${GITHUB_TOKEN:-}}
 
-  # SUBMODULES_ENABLED - submodules support, if not specified, set to false
-  SUBMODULES_ENABLED=${PARAM_SUBMODULES_ENABLED:-${SUBMODULES_ENABLED:-0}}
+  # ENABLED_SUBMODULES - submodules support, if not specified, set to false
+  ENABLED_SUBMODULES=${PARAM_WITH_SUBMODULES:-${ENABLED_SUBMODULES:-0}}
 
-  # LFS_ENABLED - Git LFS support, if not specified, set to false
-  LFS_ENABLED=${PARAM_LFS_ENABLED:-${LFS_ENABLED:-0}}
+  # ENABLED_LFS - Git LFS support, if not specified, set to false
+  ENABLED_LFS=${PARAM_WITH_LFS:-${ENABLED_LFS:-0}}
 
   printf "${GREEN}%s${NC}\n" "Checkout vars:"
-  printf "%s\n" "- DEPTH=${DEPTH:-}"
-  printf "%s\n" "- DEST_DIR=${DEST_DIR:-}"
-  printf "%s\n" "- GITHUB_TOKEN=${GITHUB_TOKEN:-}"
-  printf "%s\n" "- LFS_ENABLED=${LFS_ENABLED:-}"
-  printf "%s\n" "- REPO_BRANCH=${REPO_BRANCH:-}"
-  printf "%s\n" "- REPO_SHA1=${REPO_SHA1:-}"
-  printf "%s\n" "- REPO_TAG=${REPO_TAG:-}"
-  printf "%s\n" "- REPO_URL=${REPO_URL:-}"
-  printf "%s\n" "- SUBMODULES_DEPTH=${SUBMODULES_DEPTH:-}"
-  printf "%s\n" "- SUBMODULES_ENABLED=${SUBMODULES_ENABLED:-}"
+  printf "%s\n" "- DEPTH=${DEPTH}"
+  printf "%s\n" "- DEPTH_FOR_SUBMODULES=${DEPTH_FOR_SUBMODULES}"
+  printf "%s\n" "- DEST_DIR=${DEST_DIR}"
+  printf "%s\n" "- ENABLED_LFS=${ENABLED_LFS}"
+  printf "%s\n" "- ENABLED_SUBMODULES=${ENABLED_SUBMODULES}"
+  printf "%s\n" "- GITHUB_TOKEN=${GITHUB_TOKEN}"
+  printf "%s\n" "- REPO_BRANCH=${REPO_BRANCH}"
+  printf "%s\n" "- REPO_SHA1=${REPO_SHA1}"
+  printf "%s\n" "- REPO_TAG=${REPO_TAG}"
+  printf "%s\n" "- REPO_URL=${REPO_URL}"
   printf "%s\n" ""
 
   if [ -z "${REPO_BRANCH}" ] && [ -z "${REPO_TAG}" ]; then
@@ -193,30 +193,30 @@ main() {
   init_input_vars_ssh
   init_input_vars_checkout
 
-  setup_git_lfs "${LFS_ENABLED}"
+  setup_git_lfs "${ENABLED_LFS}"
 
-  GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY:-}" \
-    GR_SSH__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC:-}" \
-    GR_SSH__DEBUG_SSH="${DEBUG_SSH:-}" \
-    GR_SSH__SSH_CONFIG_DIR="${SSH_CONFIG_DIR:-}" \
-    GR_SSH__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64:-}" \
-    GR_SSH__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH:-}" \
-    GR_SSH__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64:-}" \
-    GR_SSH__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH:-}" \
+  GR_SSH__CHECKOUT_KEY="${CHECKOUT_KEY}" \
+    GR_SSH__CHECKOUT_KEY_PUBLIC="${CHECKOUT_KEY_PUBLIC}" \
+    GR_SSH__DEBUG_SSH="${DEBUG_SSH}" \
+    GR_SSH__SSH_CONFIG_DIR="${SSH_CONFIG_DIR}" \
+    GR_SSH__SSH_PRIVATE_KEY_B64="${SSH_PRIVATE_KEY_B64}" \
+    GR_SSH__SSH_PRIVATE_KEY_PATH="${SSH_PRIVATE_KEY_PATH}" \
+    GR_SSH__SSH_PUBLIC_KEY_B64="${SSH_PUBLIC_KEY_B64}" \
+    GR_SSH__SSH_PUBLIC_KEY_PATH="${SSH_PUBLIC_KEY_PATH}" \
     setup_ssh
 
-  GR_GITCO__DEBUG="${DEBUG:-}" \
-    GR_GITCO__DEBUG_GIT="${DEBUG_GIT:-}" \
-    GR_GITCO__DEPTH="${DEPTH:-}" \
-    GR_GITCO__DEST_DIR="${DEST_DIR:-}" \
-    GR_GITCO__GITHUB_TOKEN="${GITHUB_TOKEN:-}" \
-    GR_GITCO__LFS_ENABLED="${LFS_ENABLED:-}" \
-    GR_GITCO__REPO_BRANCH="${REPO_BRANCH:-}" \
-    GR_GITCO__REPO_SHA1="${REPO_SHA1:-}" \
-    GR_GITCO__REPO_TAG="${REPO_TAG:-}" \
-    GR_GITCO__REPO_URL="${REPO_URL:-}" \
-    GR_GITCO__SUBMODULES_DEPTH="${SUBMODULES_DEPTH:-}" \
-    GR_GITCO__SUBMODULES_ENABLED="${SUBMODULES_ENABLED:-}" \
+  GR_GITCO__DEBUG="${DEBUG}" \
+    GR_GITCO__DEBUG_GIT="${DEBUG_GIT}" \
+    GR_GITCO__DEPTH="${DEPTH}" \
+    GR_GITCO__DEPTH_FOR_SUBMODULES="${DEPTH_FOR_SUBMODULES}" \
+    GR_GITCO__DEST_DIR="${DEST_DIR}" \
+    GR_GITCO__ENABLED_LFS="${ENABLED_LFS}" \
+    GR_GITCO__ENABLED_SUBMODULES="${ENABLED_SUBMODULES}" \
+    GR_GITCO__GITHUB_TOKEN="${GITHUB_TOKEN}" \
+    GR_GITCO__REPO_BRANCH="${REPO_BRANCH}" \
+    GR_GITCO__REPO_SHA1="${REPO_SHA1}" \
+    GR_GITCO__REPO_TAG="${REPO_TAG}" \
+    GR_GITCO__REPO_URL="${REPO_URL}" \
     git_checkout_advanced
 }
 

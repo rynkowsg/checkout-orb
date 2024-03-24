@@ -10,16 +10,16 @@ description: |
 
   # Checkout and fetch LFS files.
   - checkout/checkout:
-      lfs: true
+      with_lfs: true
 
   # Checkout with recursive update of all submodules.
   - checkout/checkout:
-      submodules: true
+      with_submodules: true
 
   # Checkout and fetch LFS files in the repository and all its submodules.
   - checkout/checkout:
-      lfs: true
-      submodules: true
+      with_lfs: true
+      with_submodules: true
 
 usage:
   version: 2.1

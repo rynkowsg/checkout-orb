@@ -14,6 +14,13 @@ commands:
   test_clone_git_repo:
     parameters:
       # parameters copied from clone_git_repo
+      bash_path:
+        type: string
+        default: ""
+        description: |
+          The command requires at least Bash 4.
+          If the default is lower, it needs to be installed before the command.
+          If value not provided, the default bash is used.
       debug:
         type: boolean
         default: false
@@ -24,6 +31,12 @@ commands:
         default: -1
         description: |
           Specifies the clone depth, indicating the number of recent commits to include.
+          Default: -1 (fetches all commits).
+      depth_for_submodules:
+        type: integer
+        default: -1
+        description: |
+          Specifies the clone depth for submodules, indicating the number of recent commits to include.
           Default: -1 (fetches all commits).
       dest_dir:
         type: string
@@ -36,11 +49,6 @@ commands:
         default: ""
         description: |
           GitHub token. It can help to surpass connection quotas per machine.
-      lfs:
-        type: boolean
-        default: false
-        description:  |
-          Enables cloning with Git Large File Storage (LFS) support.
       name_displayed:
         type: string
         default: "checkout/checkout"
@@ -70,20 +78,16 @@ commands:
 #        description: |
 #          Specifies the repository URL.
 #          Defaults to REPO_URL, then CIRCLE_REPOSITORY_URL if unset.
-      submodules:
+      with_lfs:
+        type: boolean
+        default: false
+        description: |
+          Enables cloning with Git Large File Storage (LFS) support.
+      with_submodules:
         type: boolean
         default: false
         description: |
           Enables cloning of submodules.
-      submodules_depth:
-        type: integer
-        default: -1
-        description: |
-          Specifies the clone depth for submodules, indicating the number of recent commits to include.
-          Default: -1 (fetches all commits).
-          # It is worth to remember that GitHub doesn't allow to fetch by SHA1.
-          # In such a case, with shallow clone, the required reference can't be found.
-          # https://github.com/boostorg/boost/issues/245#issuecomment-470716527
       # parameters specific only to test_clone_git_repo:
       repo_coordinates:
         type: string
@@ -105,16 +109,16 @@ commands:
       - checkout/checkout:
           debug: <<parameters.debug>>
           depth: <<parameters.depth>>
+          depth_for_submodules: <<parameters.depth_for_submodules>>
           dest_dir: <<parameters.dest_dir>>
-          lfs: <<parameters.lfs>>
           name_displayed: <<parameters.name_displayed>>
-          submodules: <<parameters.submodules>>
-          submodules_depth: <<parameters.submodules_depth>>
+          with_lfs: <<parameters.with_lfs>>
+          with_submodules: <<parameters.with_submodules>>
       - run:
           name: "Run tests"
           environment:
-            LFS_ENABLED: <<parameters.lfs>>
-            SUBMODULES_ENABLED: <<parameters.submodules>>
+            LFS_ENABLED: <<parameters.with_lfs>>
+            SUBMODULES_ENABLED: <<parameters.with_submodules>>
             PARAM_DEST_DIR: <<parameters.dest_dir>>
           command: |
             # the DEST_DIR logic here maches logic from the checkout bash impl
@@ -213,9 +217,9 @@ jobs:
     parameters:
       debug: {type: boolean, default: false}
       repo_coordinates: {type: string}
-      lfs: {type: boolean}
-      submodules: {type: boolean}
+      with_lfs: {type: boolean}
       with_prior_builtin_checkout: {type: boolean, default: false}
+      with_submodules: {type: boolean}
     executor: rynkowsg/docker_x86_cimg_base
     steps:
       - when:
@@ -225,11 +229,11 @@ jobs:
       - bats/install
       - test_clone_git_repo:
           debug: <<parameters.debug>>
-          repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
-          repo_coordinates: <<parameters.repo_coordinates>>
-          lfs: <<parameters.lfs>>
-          submodules: <<parameters.submodules>>
           dest_dir: /tmp/sample-repo
+          repo_coordinates: <<parameters.repo_coordinates>>
+          repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
+          with_lfs: <<parameters.with_lfs>>
+          with_submodules: <<parameters.with_submodules>>
 
 workflows:
   test-deploy:
@@ -285,7 +289,7 @@ workflows:
 
       # test combination of authentication, lfs and submodules for public repository
       - test_clone_full:
-          name: test_clone_full, <<matrix.repo_coordinates>>, PC:<<matrix.with_prior_builtin_checkout>>, <<matrix.context>>, L:<<matrix.lfs>>, S:<<matrix.submodules>>
+          name: test_clone_full, <<matrix.repo_coordinates>>, PC:<<matrix.with_prior_builtin_checkout>>, <<matrix.context>>, L:<<matrix.with_lfs>>, S:<<matrix.with_submodules>>
           context:
             - gr/test-clone-github-https
             - <<matrix.context>>
@@ -299,10 +303,10 @@ workflows:
 #                - "l1|master||5345a62"
 #                - "l2|master-lfs||59550f0"
 #                - "l2|master||da342f2"
-              with_prior_builtin_checkout: [true, false]
               context: [gr/empty, gr/test-clone-ssh-identity-b64]
-              lfs: [true, false]
-              submodules: [true, false]
+              with_lfs: [true, false]
+              with_prior_builtin_checkout: [true, false]
+              with_submodules: [true, false]
           filters: *filters
 
       - orb-tools/pack:
