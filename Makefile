@@ -1,4 +1,4 @@
-.PHONY: lint format-check format-apply format-update-patches
+.PHONY: lint format-check format format-update-patches
 
 deps_format: @bin/format.bash
 	shellpack fetch @bin/format.bash
@@ -9,10 +9,10 @@ deps_lint: @bin/lint.bash
 deps_src:
 	shellpack fetch src/scripts/clone_git_repo.bash
 
-format: deps_format
+format-check: deps_format
 	\@bin/format.bash check
 
-format-apply: deps_format
+format: deps_format
 	\@bin/format.bash apply
 
 lint: deps_format deps_lint deps_src
