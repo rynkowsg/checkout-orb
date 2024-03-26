@@ -58,7 +58,7 @@ jobs:
             - ~/.asdf/shims
       - rynkowsg/install_shellpack: {version: "e3771fbea15bb8859a61974deae76182dfd895b9"}
       - run: make lint
-      - run: make format
+      - run: make format-check
 
 workflows:
   lint-pack:
