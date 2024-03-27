@@ -151,6 +151,13 @@ I welcome [issues][gh-issues] to and [pull requests][gh-pulls] against this repo
 - https://github.com/issmirnov/fast-checkout-orb
 - https://github.com/vsco/advanced-checkout-orb
 
+## Check out also
+
+| Name                                                            | Description                                                                                       |
+|-----------------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| [`rynkowsg/checkout`](https://github.com/rynkowsg/checkout-orb) | Advanced checkout with support of LFS, submodules, custom SSH identities, shallow clones and more |
+| [`rynkowsg/rynkowsg`](https://github.com/rynkowsg/rynkowsg-orb) | Orb with no particular theme, used primarily for prototyping                                      |
+
 ## License
 
 Copyright © 2024 Greg Rynkowski
