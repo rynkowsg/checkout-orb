@@ -24,7 +24,7 @@ SHELL_GR_DIR="${SHELL_GR_DIR:-"${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.2.2
 source "${SHELL_GR_DIR}/lib/tool/format.bash" # format_with_env
 
 main() {
-  local format_cmd_type=$1
+  local format_cmd_type="${1:-"apply"}"
   local error=0
   format_with_env "${format_cmd_type}" bash \
     < <(
