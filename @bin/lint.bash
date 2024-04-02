@@ -31,7 +31,12 @@ main() {
         | sort
     ) \
     || ((error += $?))
-  lint bats < <(find "${ROOT_DIR}" -type f -name '*.bats' | sort) || ((error += $?))
+  lint bats \
+    < <(
+      find "${ROOT_DIR}" -type f -name '*.bats' \
+        | sort
+    ) \
+    || ((error += $?))
   if ((error > 0)); then
     exit "$error"
   fi
