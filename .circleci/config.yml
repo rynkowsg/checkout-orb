@@ -9,7 +9,7 @@ orbs:
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.1.0
   # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/rynkowsg
-  rynkowsg: rynkowsg/rynkowsg@0.3.0
+  rynkowsg: rynkowsg/rynkowsg@0.4.0
   # orb info: https://circleci.com/developer/orbs/orb/circleci/shellcheck
   # changelog: https://github.com/CircleCI-Public/shellcheck-orb/releases
   shellcheck: circleci/shellcheck@3.2.0
@@ -56,7 +56,7 @@ jobs:
             - ~/.asdf/installs
             - ~/.asdf/plugins
             - ~/.asdf/shims
-      - rynkowsg/install_shellpack: {version: "e3771fbea15bb8859a61974deae76182dfd895b9"}
+      - rynkowsg/install_sosh: {version: "v0.2.0"}
       - run: make lint
       - run: make format-check
 
