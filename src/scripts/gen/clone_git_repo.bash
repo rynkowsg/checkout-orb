@@ -81,7 +81,7 @@ print_common_debug_info() {
   printf "HOME: %s\n" "${HOME}"
   printf "PATH: %s\n" "${PATH}"
   printf "CIRCLECI: %s\n" "${CIRCLECI}"
-  # shellpack related
+  # sosh related
   [ -n "${SCRIPT_PATH:-}" ] && printf "SCRIPT_PATH: %s\n" "${SCRIPT_PATH}"
   [ -n "${SCRIPT_DIR:-}" ] && printf "SCRIPT_DIR: %s\n" "${SCRIPT_DIR}"
   [ -n "${ROOT_DIR:-}" ] && printf "ROOT_DIR: %s\n" "${ROOT_DIR}"
