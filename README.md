@@ -79,7 +79,7 @@ jobs:
   test:
     steps:
       - checkout/checkout:
-          lfs: true
+          with_lfs: true
 ```
 
 ### Clone with submodules
@@ -89,7 +89,7 @@ jobs:
   test:
     steps:
       - checkout/checkout:
-          submodules: true
+          with_submodules: true
 ```
 
 ### Clone additional repository
