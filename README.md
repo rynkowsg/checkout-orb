@@ -45,7 +45,7 @@ The simplest possible case includes replacement of `checkout` to `checkout/check
 version: '2.1'
 
 orbs:
-  checkout: rynkowsg/checkout@0.2.0
+  checkout: rynkowsg/checkout@0.3.0
 
 jobs:
   test:
