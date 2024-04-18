@@ -23,18 +23,20 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.2.2"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.3.0"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/color.bash
 source "${SHELL_GR_DIR}/lib/color.bash"
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/circleci.bash
 source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/git_checkout_advanced.bash
 source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/git_lfs.bash
 source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/normalize.bash
+source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/ssh.bash
 source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh
 
 #################################################
@@ -189,6 +191,7 @@ init_input_vars_checkout() {
 
 main() {
   fix_home_in_old_images
+  GR_NORMALIZE__normalize
 
   print_common_debug_info "$@"
   init_input_vars_debug

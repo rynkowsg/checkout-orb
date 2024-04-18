@@ -1,5 +1,10 @@
 version: 2.1
 orbs:
+  # https://circleci.com/developer/orbs/orb/circleci/android
+  # https://github.com/circleci-public/android-orb/releases
+  # No need to update it since this particular version was used when detected the problem.
+  # I don't want to reconstruct manually environment when the issue was detected.
+  android: circleci/android@2.5.0 # Don't update it.
   # changelog: https://github.com/CircleCI-Public/BATS-orb/releases
   bats: circleci/bats@1.1.0
   # orb in this repo
@@ -235,6 +240,29 @@ jobs:
           with_lfs: <<parameters.with_lfs>>
           with_submodules: <<parameters.with_submodules>>
 
+  test_clone_with_cd_overridden:
+    parameters:
+      debug: {type: boolean, default: false}
+    executor: { name: android/android-machine, resource-class: medium, tag: 2023.10.1 }
+    steps:
+      - run:
+          name: Preview the file bashrc
+          command: |
+            set -x
+            ls -al ~
+            [ -f ~/.bashrc ] && cat ~/.bashrc
+            [ -f ~/.circlerc ] && cat ~/.circlerc
+            declare -f cd
+            exit 0
+      - bats/install
+      - test_clone_git_repo:
+          debug: <<parameters.debug>>
+          dest_dir: /tmp/sample-repo
+          repo_coordinates: "l0|master-lfs||f731330"
+          repo_url_template: "https://github.com/rynkowsg/test-clone-repo-%s.git"
+          with_lfs: true
+          with_submodules: true
+
 workflows:
   test-deploy:
     jobs:
@@ -309,6 +337,10 @@ workflows:
               with_submodules: [true, false]
           filters: *filters
 
+      - test_clone_with_cd_overridden:
+          debug: true
+          filters: *filters
+
       - orb-tools/pack:
           requires:
             - test_clone_double
@@ -316,6 +348,7 @@ workflows:
             - test_clone_full
             - test_clone_shallow
             - test_clone_simple
+            - test_clone_with_cd_overridden
           executor: {name: orb-tools/default, resource_class: small}
           filters: *filters
 

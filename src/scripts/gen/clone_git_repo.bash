@@ -23,31 +23,41 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.2.2"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.3.0"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
-
-#################################################
-#                    COLORS                     #
-#################################################
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
 
 # shellcheck disable=SC2034
 GREEN=$(printf '\033[32m')
 RED=$(printf '\033[31m')
 YELLOW=$(printf '\033[33m')
 NC=$(printf '\033[0m')
+
+# Color enabled by default
+COLOR=${COLOR:-1}
+
+is_color() {
+  case "${COLOR}" in
+    1 | "true") return 0 ;; # true
+    *) return 1 ;;          # false
+  esac
+}
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/circleci.bash
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
 
 # Path Initialization
-if [ -n "${SHELL_GR_DIR}" ]; then
+if [ -n "${SHELL_GR_DIR:-}" ]; then
   _SHELL_GR_DIR="${SHELL_GR_DIR}"
-else
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
   _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
   _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
   _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
@@ -90,14 +100,16 @@ print_common_debug_info() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/git_checkout_advanced.bash
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # BEGIN
 #!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
 
 # Path Initialization
-if [ -n "${SHELL_GR_DIR}" ]; then
+if [ -n "${SHELL_GR_DIR:-}" ]; then
   _SHELL_GR_DIR="${SHELL_GR_DIR}"
-else
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
   _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
   _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
   _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
@@ -108,6 +120,8 @@ fi
 # source "${_SHELL_GR_DIR}/lib/color.bash"  # GREEN, NC, RED, YELLOW # SKIPPED
 # source "${_SHELL_GR_DIR}/lib/git.bash"    # is_git_repository # BEGIN
 #!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
 
 is_git_repository() {
   git rev-parse --git-dir >/dev/null 2>&1
@@ -115,6 +129,8 @@ is_git_repository() {
 # source "${_SHELL_GR_DIR}/lib/git.bash"    # is_git_repository # END
 # source "${_SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # BEGIN
 #!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
 
 # Returns GitHub authorized URL if github token provided.
 # Otherwise returns same URL.
@@ -354,14 +370,16 @@ EOF
   echo "${fetch_repo_script}"
 }
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/git_lfs.bash
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # BEGIN
 #!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
 
 # Path Initialization
-if [ -n "${SHELL_GR_DIR}" ]; then
+if [ -n "${SHELL_GR_DIR:-}" ]; then
   _SHELL_GR_DIR="${SHELL_GR_DIR}"
-else
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
   _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
   _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
   _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
@@ -397,14 +415,133 @@ setup_git_lfs() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.2.2/lib/ssh.bash
-# source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # BEGIN
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/normalize.bash
+# source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize # BEGIN
 #!/usr/bin/env bash
+# Copyright (c) 2024. All rights reserved.
+# License: MIT License
 
 # Path Initialization
-if [ -n "${SHELL_GR_DIR}" ]; then
+if [ -n "${SHELL_GR_DIR:-}" ]; then
   _SHELL_GR_DIR="${SHELL_GR_DIR}"
-else
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
+  _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
+  _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
+  _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
+  _ROOT_DIR="$(cd "${_SCRIPT_DIR}/.." && pwd -P || exit 1)"
+  _SHELL_GR_DIR="${_ROOT_DIR}"
+fi
+# Library Sourcing
+# source "${_SHELL_GR_DIR}/lib/log.bash" # log_debug # BEGIN
+#!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
+
+# Path Initialization
+if [ -n "${SHELL_GR_DIR:-}" ]; then
+  _SHELL_GR_DIR="${SHELL_GR_DIR}"
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
+  _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
+  _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
+  _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
+  _ROOT_DIR="$(cd "${_SCRIPT_DIR}/.." && pwd -P || exit 1)"
+  _SHELL_GR_DIR="${_ROOT_DIR}"
+fi
+# Library Sourcing
+# source "${_SHELL_GR_DIR}/lib/color.bash" # NC, RED, YELLOW, is_color # SKIPPED
+# source "${_SHELL_GR_DIR}/lib/debug.bash" # is_debug # BEGIN
+#!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
+
+# Debug disabled by default
+DEBUG=${DEBUG:-0}
+
+is_debug() {
+  case "${DEBUG}" in
+    1 | "true") return 0 ;; # true
+    *) return 1 ;;          # false
+  esac
+}
+# source "${_SHELL_GR_DIR}/lib/debug.bash" # is_debug # END
+
+# Expected env vars for log functions:
+# COLOR - to enable/disable colors
+# DEBUG - to enable/disable debug logs
+# PREFIX - log prefix
+
+__LOG_PREFIX="${LOG_PREFIX:-}"
+
+# shellcheck disable=SC2059
+log_error_f() {
+  if is_color; then
+    printf "${RED}${__LOG_PREFIX}${1}${NC}" "${@:2}"
+  else
+    printf "$@"
+  fi
+}
+
+log_error() {
+  log_error_f "%s\n" "$@"
+}
+
+# shellcheck disable=SC2059
+log_warning_f() {
+  if is_color; then
+    printf "${YELLOW}${__LOG_PREFIX}${1}${NC}" "${@:2}"
+  else
+    printf "$@"
+  fi
+}
+
+log_warning() {
+  log_warning_f "%s\n" "$@"
+}
+
+log_info_f() {
+  # shellcheck disable=SC2059
+  printf "${__LOG_PREFIX}${1}" "${@:2}"
+}
+
+log_info() {
+  log_info_f "${__LOG_PREFIX}%s\n" "$@"
+}
+
+log_debug_f() {
+  if is_debug; then
+    # shellcheck disable=SC2059
+    printf "${__LOG_PREFIX}${1}" "${@:2}"
+  fi
+}
+
+log_debug() {
+  log_debug_f "%s\n" "$@"
+}
+# source "${_SHELL_GR_DIR}/lib/log.bash" # log_debug # END
+
+# Recovers builtin cd if it is overridden
+GR_NORMALIZE__recover_builtin_cd() {
+  if declare -f cd >/dev/null; then
+    unset -f cd
+    log_debug "Reverted cd to its builtin behavior."
+  fi
+}
+
+# Normalizes the environment.
+GR_NORMALIZE__normalize() {
+  GR_NORMALIZE__recover_builtin_cd
+}
+# source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize # END
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/ssh.bash
+# source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # BEGIN
+#!/usr/bin/env bash
+# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# License: MIT License
+
+# Path Initialization
+if [ -n "${SHELL_GR_DIR:-}" ]; then
+  _SHELL_GR_DIR="${SHELL_GR_DIR}"
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
   _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
   _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
   _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
@@ -722,6 +859,7 @@ init_input_vars_checkout() {
 
 main() {
   fix_home_in_old_images
+  GR_NORMALIZE__normalize
 
   print_common_debug_info "$@"
   init_input_vars_debug
