@@ -1,4 +1,4 @@
-.PHONY: deps _format_deps format format-check _lint_deps lint
+.PHONY: deps _format_deps format format-check _lint_deps lint gen
 
 deps:
 	sosh fetch src/scripts/clone_git_repo.bash
@@ -17,3 +17,6 @@ _lint_deps: @bin/lint.bash
 
 lint: _format_deps _lint_deps deps
 	\@bin/lint.bash
+
+gen: deps
+	sosh pack -i src/scripts/clone_git_repo.bash -o src/scripts/gen/clone_git_repo.bash
