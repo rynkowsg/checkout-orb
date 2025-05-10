@@ -4,7 +4,7 @@ orbs:
   # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/asdf
   asdf: rynkowsg/asdf@0.1.2
   # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/checkout
-  checkout: rynkowsg/checkout@dev:48bccad7565afc1f0a50ab4cb4f04ecc9059b836
+  checkout: rynkowsg/checkout@0.3.0
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
   orb-tools: circleci/orb-tools@12.1.0
