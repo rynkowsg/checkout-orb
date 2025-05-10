@@ -37,7 +37,7 @@ jobs:
             asdf-plugin-manager add shellcheck && asdf install shellcheck
             asdf-plugin-manager add shfmt && asdf install shfmt
             asdf-plugin-manager add yamlfmt && asdf install yamlfmt
-             # java specific
+            # java specific
             . ~/.asdf/plugins/java/set-java-home.bash
             echo ". ~/.asdf/plugins/java/set-java-home.bash" >> $BASH_ENV
             echo "JAVA_HOME=$(asdf where java)" >> $BASH_ENV
