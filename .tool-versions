@@ -7,6 +7,9 @@ bats 1.11.1
 # https://github.com/babashka/babashka/releases
 babashka 1.12.200
 
+# https://github.com/CircleCI-Public/circleci-cli/releases
+circleci-cli 0.1.31687
+
 # https://adoptium.net/temurin/archive/?version=17
 java temurin-17.0.15+6
 # (required for: sosh)

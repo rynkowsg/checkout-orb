@@ -1,4 +1,4 @@
-.PHONY: deps _format_deps format format-check _lint_deps lint gen
+.PHONY: deps _format_deps format format-check _lint_deps lint gen validate
 
 deps:
 	sosh fetch src/scripts/clone_git_repo.bash
@@ -20,3 +20,7 @@ lint: _format_deps _lint_deps deps
 
 gen: deps
 	sosh pack -i src/scripts/clone_git_repo.bash -o src/scripts/gen/clone_git_repo.bash
+
+validate:
+	circleci orb pack ./src > /tmp/orb
+	circleci orb validate /tmp/orb
