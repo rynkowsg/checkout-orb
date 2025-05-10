@@ -6,3 +6,4 @@ circleci-cli         https://github.com/ucpr/asdf-circleci-cli.git              
 java                 https://github.com/halcyon/asdf-java.git                   4a1fbd1
 shellcheck           https://github.com/luizm/asdf-shellcheck.git               66200ff
 shfmt                https://github.com/luizm/asdf-shfmt.git                    a42c5ff
+yamlfmt              https://github.com/mise-plugins/asdf-yamlfmt.git           c5760c1

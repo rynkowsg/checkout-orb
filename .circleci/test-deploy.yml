@@ -59,30 +59,30 @@ commands:
         default: "checkout/checkout"
         description: |
           The display name for the command.
-#      repo_branch:
-#        type: string
-#        default: ""
-#        description: |
-#          Specifies the branch to checkout.
-#          Defaults to REPO_BRANCH, then CIRCLE_BRANCH if unset.
-#      repo_sha1:
-#        type: string
-#        default: ""
-#        description: |
-#          Specifies the commit SHA1 to checkout.
-#          Defaults to REPO_SHA1, then CIRCLE_SHA1 if unset.
-#      repo_tag:
-#        type: string
-#        default: ""
-#        description: |
-#          Specifies the tag to checkout.
-#          Defaults to REPO_TAG, then CIRCLE_TAG if unset.
-#      repo_url:
-#        type: string
-#        default: ""
-#        description: |
-#          Specifies the repository URL.
-#          Defaults to REPO_URL, then CIRCLE_REPOSITORY_URL if unset.
+        #repo_branch:
+        #  type: string
+        #  default: ""
+        #  description: |
+        #    Specifies the branch to checkout.
+        #    Defaults to REPO_BRANCH, then CIRCLE_BRANCH if unset.
+        #repo_sha1:
+        #  type: string
+        #  default: ""
+        #  description: |
+        #    Specifies the commit SHA1 to checkout.
+        #    Defaults to REPO_SHA1, then CIRCLE_SHA1 if unset.
+        #repo_tag:
+        #  type: string
+        #  default: ""
+        #  description: |
+        #    Specifies the tag to checkout.
+        #    Defaults to REPO_TAG, then CIRCLE_TAG if unset.
+        #repo_url:
+        #  type: string
+        #  default: ""
+        #  description: |
+        #    Specifies the repository URL.
+        #    Defaults to REPO_URL, then CIRCLE_REPOSITORY_URL if unset.
       with_lfs:
         type: boolean
         default: false
@@ -239,7 +239,7 @@ jobs:
   test_clone_with_cd_overridden:
     parameters:
       debug: {type: boolean, default: false}
-    executor: { name: android/android-machine, resource-class: medium, tag: 2023.10.1 }
+    executor: {name: android/android-machine, resource-class: medium, tag: 2023.10.1}
     steps:
       - run:
           name: Preview the file bashrc
@@ -323,10 +323,10 @@ workflows:
               repo_coordinates:
                 - "l0|master-lfs||f731330"
                 - "l0|master||7a87a29"
-#                - "l1|master-lfs||fcb0be3"
-#                - "l1|master||5345a62"
-#                - "l2|master-lfs||59550f0"
-#                - "l2|master||da342f2"
+                #- "l1|master-lfs||fcb0be3"
+                #- "l1|master||5345a62"
+                #- "l2|master-lfs||59550f0"
+                #- "l2|master||da342f2"
               context: [gr/empty, gr/test-clone-ssh-identity-b64]
               with_lfs: [true, false]
               with_prior_builtin_checkout: [true, false]

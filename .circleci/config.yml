@@ -36,6 +36,7 @@ jobs:
             asdf-plugin-manager add java && asdf install java
             asdf-plugin-manager add shellcheck && asdf install shellcheck
             asdf-plugin-manager add shfmt && asdf install shfmt
+            asdf-plugin-manager add yamlfmt && asdf install yamlfmt
              # java specific
             . ~/.asdf/plugins/java/set-java-home.bash
             echo ". ~/.asdf/plugins/java/set-java-home.bash" >> $BASH_ENV
@@ -47,10 +48,12 @@ jobs:
             java --version
             shellcheck --version
             shfmt --version
+            yamlfmt --version
       - asdf/cache_save
       - rynkowsg/install_sosh: {version: "v0.2.0"}
       - run: make lint
-      - run: make format-check
+      - run: make format_shell_check
+      - run: make format_yaml_check
 
 workflows:
   lint-pack:

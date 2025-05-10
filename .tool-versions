@@ -19,3 +19,6 @@ shellcheck 0.10.0
 
 # https://github.com/mvdan/sh/releases
 shfmt 3.11.0
+
+# https://github.com/google/yamlfmt/releases
+yamlfmt 0.16.0
