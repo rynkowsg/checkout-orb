@@ -11,9 +11,9 @@ orbs:
   checkout: {}
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
-  orb-tools: circleci/orb-tools@12.1.0
+  orb-tools: circleci/orb-tools@12.3.1
   # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/rynkowsg
-  rynkowsg: rynkowsg/rynkowsg@0.5.0
+  rynkowsg: rynkowsg/rynkowsg@0.6.0
 
 commands:
   test_clone_git_repo:
@@ -195,11 +195,7 @@ jobs:
       - when:
           condition: {equal: ["<<parameters.executor>>", "rynkowsg/macos"]}
           steps:
-            - run:
-                name: Install bash
-                command: |
-                  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-                  brew install bash
+            - rynkowsg/macos_install_bash
             - checkout/checkout:
                 bash_path: /usr/local/bin/bash
                 debug: <<parameters.debug>>
