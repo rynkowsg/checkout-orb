@@ -197,7 +197,7 @@ jobs:
           steps:
             - rynkowsg/macos_install_bash
             - checkout/checkout:
-                bash_path: /usr/local/bin/bash
+                bash_path: /opt/homebrew/bin/bash
                 debug: <<parameters.debug>>
 
   test_clone_shallow:
