@@ -83,7 +83,7 @@ steps:
   - when:
       condition: {equal: [<<parameters.bash_path>>, ""]}
       steps:
-        - run: &steps_no_custom_bash
+        - run:
             # REMINDER: If you change anything here, copy-paste it to the test job.
             environment:
               PARAM_DEBUG: <<parameters.debug>>
@@ -104,5 +104,19 @@ steps:
       condition: {not: {equal: [<<parameters.bash_path>>, ""]}}
       steps:
         - run:
+            # REMINDER: If you change anything here, copy-paste it to the test job.
+            environment:
+              PARAM_DEBUG: <<parameters.debug>>
+              PARAM_DEPTH: <<parameters.depth>>
+              PARAM_DEPTH_FOR_SUBMODULES: <<parameters.depth_for_submodules>>
+              PARAM_DEST_DIR: <<parameters.dest_dir>>
+              PARAM_GITHUB_TOKEN: <<parameters.github_token>>
+              PARAM_REPO_BRANCH: <<parameters.repo_branch>>
+              PARAM_REPO_SHA1: <<parameters.repo_sha1>>
+              PARAM_REPO_TAG: <<parameters.repo_tag>>
+              PARAM_REPO_URL: <<parameters.repo_url>>
+              PARAM_WITH_LFS: <<parameters.with_lfs>>
+              PARAM_WITH_SUBMODULES: <<parameters.with_submodules>>
+            name: <<parameters.name_displayed>>
+            command: <<include(scripts/gen/clone_git_repo.bash)>>
             shell: <<parameters.bash_path>>
-            <<: *steps_no_custom_bash
