@@ -11,9 +11,9 @@ orbs:
   checkout: {}
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
   # changelog: https://github.com/CircleCI-Public/orb-tools-orb/releases
-  orb-tools: circleci/orb-tools@12.3.1
+  orb-tools: circleci/orb-tools@12.4.0
   # orb info: https://circleci.com/developer/orbs/orb/rynkowsg/rynkowsg
-  rynkowsg: rynkowsg/rynkowsg@0.6.0
+  rynkowsg: rynkowsg/rynkowsg@0.7.0
 
 commands:
   test_clone_git_repo:
@@ -126,7 +126,7 @@ commands:
             SUBMODULES_ENABLED: <<parameters.with_submodules>>
             PARAM_DEST_DIR: <<parameters.dest_dir>>
           command: |
-            # the DEST_DIR logic here maches logic from the checkout bash impl
+            # the DEST_DIR logic here matches logic from the checkout bash impl
             DEST_DIR=${PARAM_DEST_DIR:-${DEST_DIR:-${CIRCLE_WORKING_DIRECTORY:-.}}}
             eval DEST_DIR="${DEST_DIR}"
             ${DEST_DIR}/@bin/test.bash
