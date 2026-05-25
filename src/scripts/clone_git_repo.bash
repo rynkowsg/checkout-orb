@@ -141,7 +141,7 @@ init_input_vars_checkout() {
   fi
 
   DEPTH=${PARAM_DEPTH:--1}
-  DEPTH_FOR_SUBMODULES=${PARAM_DEPTH_FOR_SUBMODULESH:--1}
+  DEPTH_FOR_SUBMODULES=${PARAM_DEPTH_FOR_SUBMODULES:--1}
 
   # DEST_DIR - destination for repo
   #     If not provided in orb param, try DEST_DIR env var.
