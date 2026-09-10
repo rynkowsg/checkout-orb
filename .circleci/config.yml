@@ -51,9 +51,9 @@ jobs:
             yamlfmt --version
       - asdf/cache_save
       - rynkowsg/install_sosh: {version: "v0.2.0"}
-      - run: make lint
-      - run: make format_shell_check
-      - run: make format_yaml_check
+      - run: make lint-shell/check
+      - run: make format-shell/check
+      - run: make format-yaml/check
 
 workflows:
   lint-pack:

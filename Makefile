@@ -1,32 +1,65 @@
-.PHONY: deps _format_shell_deps format_shell_check format_shell format_yaml_check format_yaml _lint_deps lint gen validate
+.DEFAULT_GOAL := help
 
-deps:
-	sosh fetch src/scripts/clone_git_repo.bash
+# Lists every target that carries a `## ` description, in the order they appear.
+# Targets without one stay out of the listing, which is how the `_` ones hide.
+.PHONY: help
+help:  ## Print this help
+	@awk 'BEGIN{FS=":.*##"} /^[a-zA-Z0-9_\/-]+:.*##/ {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-_format_shell_deps: @bin/format.bash
+.PHONY: orb/validate
+orb/validate:  ## Pack the orb and validate it (needs a CircleCI token)
+	mkdir -p dist
+	circleci orb pack ./src > dist/orb.yml
+	circleci orb validate dist/orb.yml
+
+.PHONY: _format-shell/deps
+_format-shell/deps:
 	sosh fetch @bin/format.bash
 
-format_shell_check: _format_shell_deps
-	\@bin/format.bash check
-
-format_shell: _format_shell_deps
-	\@bin/format.bash apply
-
-format_yaml_check:
-	yamlfmt --lint .
-
-format_yaml:
-	yamlfmt .
-
-_lint_deps: @bin/lint.bash
+.PHONY: _lint-shell/deps
+_lint-shell/deps:
 	sosh fetch @bin/lint.bash
 
-lint: _format_shell_deps _lint_deps deps
-	\@bin/lint.bash
+.PHONY: scripts/deps
+scripts/deps:
+	sosh fetch src/scripts/clone_git_repo.bash
 
-gen: deps
+.PHONY: scripts/gen
+scripts/gen: scripts/deps  ## Pack the scripts into src/scripts/gen
 	sosh pack -i src/scripts/clone_git_repo.bash -o src/scripts/gen/clone_git_repo.bash
 
-validate:
-	circleci orb pack ./src > /tmp/orb
-	circleci orb validate /tmp/orb
+.PHONY: format/check
+format/check: format-shell/check format-yaml/check  ## Check shell and YAML formatting
+
+.PHONY: format/fix
+format/fix: format-shell/fix format-yaml/fix  ## Format shell and YAML
+
+.PHONY: format-shell/check
+format-shell/check: _format-shell/deps  ## Check shell formatting
+	./@bin/format.bash check
+
+.PHONY: format-shell/fix
+format-shell/fix: _format-shell/deps  ## Format shell scripts
+	./@bin/format.bash apply
+
+.PHONY: format-yaml/check
+format-yaml/check:  ## Check YAML formatting
+	yamlfmt --lint .
+
+.PHONY: format-yaml/fix
+format-yaml/fix:  ## Format YAML files
+	yamlfmt .
+
+.PHONY: lint/check
+lint/check: lint-shell/check  ## Lint sources
+
+# lint.bash runs shellcheck with --external-sources, so shellcheck follows the
+# `# shellcheck source=` directives in the files it lints. Every library they
+# point at has to be fetched first, or shellcheck reports SC1091 and the lint
+# fails. That covers the @bin helpers and the scripts under src.
+.PHONY: lint-shell/check
+lint-shell/check: _format-shell/deps _lint-shell/deps scripts/deps  ## Lint shell scripts
+	./@bin/lint.bash
+
+.PHONY: check
+check: format/check lint/check orb/validate  ## Run every check
