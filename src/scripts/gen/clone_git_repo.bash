@@ -23,19 +23,22 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.3.0"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.8.0"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # shellcheck disable=SC2034
 GREEN=$(printf '\033[32m')
+# shellcheck disable=SC2034
 RED=$(printf '\033[31m')
+# shellcheck disable=SC2034
 YELLOW=$(printf '\033[33m')
+# shellcheck disable=SC2034
 NC=$(printf '\033[0m')
 
 # Color enabled by default
@@ -48,10 +51,10 @@ is_color() {
   esac
 }
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/circleci.bash
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Path Initialization
@@ -100,10 +103,10 @@ print_common_debug_info() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/git_checkout_advanced.bash
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Path Initialization
@@ -117,19 +120,149 @@ elif [ -z "${_SHELL_GR_DIR:-}" ]; then
   _SHELL_GR_DIR="${_ROOT_DIR}"
 fi
 # Library Sourcing
-# source "${_SHELL_GR_DIR}/lib/color.bash"  # GREEN, NC, RED, YELLOW # SKIPPED
-# source "${_SHELL_GR_DIR}/lib/git.bash"    # is_git_repository # BEGIN
+# source "${_SHELL_GR_DIR}/lib/color.bash"      # GREEN, NC, RED, YELLOW # SKIPPED
+# source "${_SHELL_GR_DIR}/lib/git.bash"        # is_git_repository_root_dir # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 is_git_repository() {
   git rev-parse --git-dir >/dev/null 2>&1
 }
-# source "${_SHELL_GR_DIR}/lib/git.bash"    # is_git_repository # END
-# source "${_SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # BEGIN
+
+# Succeeds when the current directory is the root of a repo, not just somewhere inside one.
+is_git_repository_root_dir() {
+  is_git_repository && [ "$(git rev-parse --show-toplevel)" = "$(pwd -P)" ]
+}
+# source "${_SHELL_GR_DIR}/lib/git.bash"        # is_git_repository_root_dir # END
+# source "${_SHELL_GR_DIR}/lib/git_deepen.bash" # git_deepen_to_last_tag # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2026 Greg Rynkowski. All rights reserved.
+# License: MIT License
+
+# Path Initialization
+if [ -n "${SHELL_GR_DIR:-}" ]; then
+  _SHELL_GR_DIR="${SHELL_GR_DIR}"
+elif [ -z "${_SHELL_GR_DIR:-}" ]; then
+  _SCRIPT_PATH_1="${BASH_SOURCE[0]:-$0}"
+  _SCRIPT_PATH="$([[ ! "${_SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${_SCRIPT_PATH_1}" || exit 1)"
+  _SCRIPT_DIR="$(cd "$(dirname "${_SCRIPT_PATH}")" && pwd -P || exit 1)"
+  _ROOT_DIR="$(cd "${_SCRIPT_DIR}/.." && pwd -P || exit 1)"
+  _SHELL_GR_DIR="${_ROOT_DIR}"
+fi
+# Library Sourcing
+# source "${_SHELL_GR_DIR}/lib/color.bash" # GREEN, NC, RED, YELLOW # SKIPPED
+
+# Deepens a shallow repo until the history of HEAD reaches a tag, then fetches
+# the tags found in that history, so `git describe --tags` works.
+# Each round deepens twice as much as the one before. When no tag shows up
+# within these rounds, or the remote has no tags, it fetches the full history.
+# A repo with the full history is not deepened, but it still gets the tags in
+# that history when they were not fetched.
+# Works in the current directory.
+# Inputs:
+# GR_GITDEEPEN__REMOTE  - remote name, e.g. origin
+# GR_GITDEEPEN__REFSPEC - refspec to deepen, e.g. refs/heads/main:refs/remotes/origin/main
+# Each input left empty is taken from the upstream of the current branch. When
+# it is neither given nor found there, the function fails.
+git_deepen_to_last_tag() {
+  local remote="${GR_GITDEEPEN__REMOTE:-}"
+  local refspec="${GR_GITDEEPEN__REFSPEC:-}"
+  local -r max_rounds=6
+
+  printf "${GREEN}%s${NC}\n" "Deepening to the last tag..."
+  if git describe --tags --abbrev=0 HEAD >/dev/null 2>&1; then
+    printf "%s\n" "- tag already in history: $(git describe --tags --abbrev=0 HEAD)"
+    printf "%s\n" ""
+    return 0
+  fi
+
+  if [ -z "${remote}" ] || [ -z "${refspec}" ]; then
+    # Without a ref, for-each-ref would list every ref, so a detached HEAD
+    # is checked first.
+    local head_ref upstream=""
+    head_ref="$(git symbolic-ref -q HEAD || true)"
+    if [ -n "${head_ref}" ]; then
+      upstream="$(git for-each-ref --format="%(upstream:remotename) %(upstream:remoteref) %(upstream)" "${head_ref}")"
+    fi
+    local upstream_remote upstream_remote_ref upstream_tracking_ref
+    read -r upstream_remote upstream_remote_ref upstream_tracking_ref <<<"${upstream}"
+    if [ -z "${remote}" ]; then
+      remote="${upstream_remote}"
+    fi
+    # The refspec names only the branch of HEAD, since a bare
+    # `git fetch <remote>` takes every branch the remote has.
+    if [ -z "${refspec}" ] && [ -n "${upstream_remote_ref}" ]; then
+      refspec="${upstream_remote_ref}:${upstream_tracking_ref}"
+    fi
+  fi
+  if [ -z "${remote}" ] || [ -z "${refspec}" ]; then
+    printf "${RED}%s${NC}\n" "Can not deepen: the remote or the refspec is neither given nor found in the upstream of HEAD."
+    return 1
+  fi
+  readonly remote refspec
+  printf "%s\n" "- remote: ${remote}"
+  printf "%s\n" "- refspec: ${refspec}"
+
+  # Map each remote tag to the commit it points to. An annotated tag is listed
+  # twice, and its line ending with "^{}" holds the commit, so that line wins.
+  local -A tag_commits=()
+  local sha ref name
+  while read -r sha ref; do
+    name="${ref#refs/tags/}"
+    if [[ "${name}" == *"^{}" ]]; then
+      tag_commits["${name%"^{}"}"]="${sha}"
+    elif [ -z "${tag_commits["${name}"]:-}" ]; then
+      tag_commits["${name}"]="${sha}"
+    fi
+  done < <(git ls-remote --tags "${remote}")
+  # Turn it around to look up tags by commit. Ref names cannot hold spaces, so
+  # the names of tags on one commit are kept in one space separated string.
+  local -A commit_tags=()
+  for name in "${!tag_commits[@]}"; do
+    commit_tags["${tag_commits["${name}"]}"]+="${name} "
+  done
+
+  local step=10
+  local round=0
+  local -a found_refspecs names
+  while true; do
+    found_refspecs=()
+    if [ ${#commit_tags[@]} -gt 0 ]; then
+      # grep streams the history, so even a long one is never held in memory.
+      while read -r sha; do
+        read -r -a names <<<"${commit_tags["${sha}"]}"
+        for name in "${names[@]}"; do
+          found_refspecs+=("refs/tags/${name}:refs/tags/${name}")
+        done
+      done < <(git rev-list HEAD | grep -F -x -f <(printf "%s\n" "${!commit_tags[@]}"))
+    fi
+    if [ ${#found_refspecs[@]} -gt 0 ]; then
+      git fetch --no-tags "${remote}" "${found_refspecs[@]}"
+      printf "%s\n" "- found tag: $(git describe --tags --abbrev=0 HEAD)"
+      printf "%s\n" ""
+      return 0
+    fi
+    if [ "$(git rev-parse --is-shallow-repository)" != "true" ]; then
+      printf "${YELLOW}%s${NC}\n" "- no tag in the history of HEAD"
+      printf "%s\n" ""
+      return 0
+    fi
+    round=$((round + 1))
+    if [ ${#commit_tags[@]} -eq 0 ] || [ "${round}" -gt "${max_rounds}" ]; then
+      printf "%s\n" "- fetching the full history"
+      git fetch --no-tags --unshallow "${remote}" "${refspec}"
+    else
+      printf "%s\n" "- deepening by ${step} commits"
+      git fetch --no-tags --deepen "${step}" "${remote}" "${refspec}"
+      step=$((step * 2))
+    fi
+  done
+}
+# source "${_SHELL_GR_DIR}/lib/git_deepen.bash" # git_deepen_to_last_tag # END
+# source "${_SHELL_GR_DIR}/lib/github.bash"     # github_authorized_repo_url # BEGIN
+#!/usr/bin/env bash
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Returns GitHub authorized URL if github token provided.
@@ -146,7 +279,7 @@ github_authorized_repo_url() {
     echo "${repo_url}"
   fi
 }
-# source "${_SHELL_GR_DIR}/lib/github.bash" # github_authorized_repo_url # END
+# source "${_SHELL_GR_DIR}/lib/github.bash"     # github_authorized_repo_url # END
 
 # $1 - dest
 git_checkout_advanced() {
@@ -154,10 +287,12 @@ git_checkout_advanced() {
   local -r input_DEBUG_GIT="${GR_GITCO__DEBUG_GIT:-}"
   local -r input_DEPTH="${GR_GITCO__DEPTH:-}"
   local -r input_DEPTH_FOR_SUBMODULES="${GR_GITCO__DEPTH_FOR_SUBMODULES:-}"
+  local -r input_DEPTH_UNTIL_LAST_TAG="${GR_GITCO__DEPTH_UNTIL_LAST_TAG:-}"
   local -r input_DEST_DIR="${GR_GITCO__DEST_DIR:-}"
   local -r input_ENABLED_LFS="${GR_GITCO__ENABLED_LFS:-}"
   local -r input_ENABLED_SUBMODULES="${GR_GITCO__ENABLED_SUBMODULES:-}"
   local -r input_GITHUB_TOKEN="${GR_GITCO__GITHUB_TOKEN:-}"
+  local -r input_REMOTE_NAME="${GR_GITCO__REMOTE_NAME:-}"
   local -r input_REPO_BRANCH="${GR_GITCO__REPO_BRANCH:-}"
   local -r input_REPO_SHA1="${GR_GITCO__REPO_SHA1:-}"
   local -r input_REPO_TAG="${GR_GITCO__REPO_TAG:-}"
@@ -167,10 +302,12 @@ git_checkout_advanced() {
   local -r debug_git="${input_DEBUG_GIT}"
   local -r depth="${input_DEPTH}"
   local -r depth_for_submodules="${input_DEPTH_FOR_SUBMODULES}"
+  local -r depth_until_last_tag="${input_DEPTH_UNTIL_LAST_TAG}"
   local -r dest="${input_DEST_DIR}"
   local -r enabled_lfs="${input_ENABLED_LFS}"
   local -r enabled_submodules="${input_ENABLED_SUBMODULES}"
   local -r github_token="${input_GITHUB_TOKEN}"
+  local -r remote_name="${input_REMOTE_NAME:-"origin"}"
   local -r repo_branch="${input_REPO_BRANCH}"
   local -r repo_sha1="${input_REPO_SHA1}"
   local -r repo_tag="${input_REPO_TAG}"
@@ -186,6 +323,7 @@ git_checkout_advanced() {
   # we don't use `git clone`, but combination of `git init` & `git fetch`.
   printf "${GREEN}%s${NC}\n" "Establishing git repo..."
   printf "%s\n" "- repo_url: ${repo_url}"
+  printf "%s\n" "- remote_name: ${remote_name}"
   printf "%s\n" "- dst: ${dest}"
   printf "%s\n" ""
 
@@ -202,11 +340,11 @@ git_checkout_advanced() {
   [ "${enabled_lfs}" = 1 ] && git lfs install --skip-smudge
   # --skip-smudge
 
-  if is_git_repository; then
-    git remote set-url origin "${repo_url}"
+  if is_git_repository_root_dir; then
+    git remote set-url "${remote_name}" "${repo_url}"
   else
     git init
-    git remote add origin "${repo_url}"
+    git remote add "${remote_name}" "${repo_url}"
   fi
   [ "${enabled_lfs}" = 1 ] && git lfs install --local --skip-smudge
   if [ "${debug_git}" = 1 ]; then
@@ -234,27 +372,38 @@ git_checkout_advanced() {
   # start checkout
   if [ -n "${repo_tag}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out tag..."
-    git fetch "${fetch_params[@]}" origin "refs/tags/${repo_tag}:refs/tags/${repo_tag}"
+    git fetch "${fetch_params[@]}" "${remote_name}" "refs/tags/${repo_tag}:refs/tags/${repo_tag}"
     git -c advice.detachedHead=false checkout --force "${repo_tag}"
     git reset --hard "${repo_sha1}"
   elif [ -n "${repo_branch}" ] && [ -n "${repo_sha1}" ]; then
     printf "${GREEN}%s${NC}\n" "Fetching & checking out branch..."
     DEBUG="${debug}" \
       TMP__FETCH_PARAMS_SERIALIZED="${fetch_params_serialized}" \
-      TMP__REFSPEC="refs/heads/${repo_branch}:refs/remotes/origin/${repo_branch}" \
+      TMP__REMOTE="${remote_name}" \
+      TMP__REFSPEC="refs/heads/${repo_branch}:refs/remotes/${remote_name}/${repo_branch}" \
       TMP__BRANCH="${repo_branch}" \
       TMP__SHA1="${repo_sha1}" \
       bash "${fetch_repo_script}"
+    # Submodules with relative URLs and Git LFS find the remote through the
+    # upstream of the current branch, and fall back to "origin" without one.
+    git branch --set-upstream-to="${remote_name}/${repo_branch}" "${repo_branch}"
   else
     printf "${RED}%s${NC}\n" "Missing coordinates to clone the repository."
     printf "${RED}%s${NC}\n" "Need to specify REPO_TAG to fetch by tag or REPO_BRANCH and REPO_SHA1 to fetch by branch."
     exit 1
   fi
+  if [ "${depth_until_last_tag}" = 1 ]; then
+    local deepen_refspec="refs/heads/${repo_branch}:refs/remotes/${remote_name}/${repo_branch}"
+    [ -n "${repo_tag}" ] && deepen_refspec="refs/tags/${repo_tag}:refs/tags/${repo_tag}"
+    GR_GITDEEPEN__REMOTE="${remote_name}" \
+      GR_GITDEEPEN__REFSPEC="${deepen_refspec}" \
+      git_deepen_to_last_tag
+  fi
   submodule_update_params=("--init" "--recursive")
   [ "${depth_for_submodules}" -ne -1 ] && submodule_update_params+=("--depth" "${depth_for_submodules}")
   [ "${enabled_submodules}" = 1 ] && git submodule update "${submodule_update_params[@]}"
   if [ "${enabled_lfs}" = 1 ]; then
-    git lfs pull
+    git lfs pull "${remote_name}"
     if [ "${enabled_submodules}" = 1 ]; then
       local fetch_lfs_in_submodule
       fetch_lfs_in_submodule="$(mktemp -t "checkout-fetch_lfs_in_submodule-$(date +%Y%m%d_%H%M%S)-XXXXX")"
@@ -292,6 +441,7 @@ NC=$(printf '\033[0m')
 
 fetch_repo() {
   local -r fetch_params_serialized="${TMP__FETCH_PARAMS_SERIALIZED}"
+  local -r remote="${TMP__REMOTE}"
   local -r refspec="${TMP__REFSPEC}"
   local -r branch="${TMP__BRANCH}"
   local -r sha1="${TMP__SHA1}"
@@ -309,7 +459,7 @@ fetch_repo() {
   done
 
   # fetch
-  git fetch "${fetch_params[@]}" origin "${refspec}"
+  git fetch "${fetch_params[@]}" "${remote}" "${refspec}"
 
   local checkout_error checkout_status
   # Try to checkout
@@ -327,7 +477,7 @@ fetch_repo() {
       # Deepen the clone until the commit is found or a limit is reached
       for i in {1..10}; do
         printf "${YELLOW}%s${NC}\n" "Deepening attempt ${i}: by 10 commits"
-        git fetch --deepen 10
+        git fetch --deepen 10 "${remote}"
         # Try to checkout again
         checkout_error=$(git checkout --force -B "${branch}" "${sha1}" 2>&1)
         checkout_status=$?
@@ -347,7 +497,7 @@ fetch_repo() {
 
       if [[ $commit_found != true ]]; then
         printf "${RED}%s${NC}\n" "Failed to find commit after deepening. Fetching the full history..."
-        git fetch --unshallow
+        git fetch --unshallow "${remote}"
         checkout_error=$(git checkout --force -B "${branch}" "${sha1}")
         checkout_status=$?
         if [ $checkout_status -eq 0 ]; then
@@ -370,10 +520,10 @@ EOF
   echo "${fetch_repo_script}"
 }
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/git_lfs.bash
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Path Initialization
@@ -415,7 +565,7 @@ setup_git_lfs() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/normalize.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/normalize.bash
 # source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024. All rights reserved.
@@ -434,7 +584,7 @@ fi
 # Library Sourcing
 # source "${_SHELL_GR_DIR}/lib/log.bash" # log_debug # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Path Initialization
@@ -451,7 +601,7 @@ fi
 # source "${_SHELL_GR_DIR}/lib/color.bash" # NC, RED, YELLOW, is_color # SKIPPED
 # source "${_SHELL_GR_DIR}/lib/debug.bash" # is_debug # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Debug disabled by default
@@ -532,10 +682,10 @@ GR_NORMALIZE__normalize() {
   GR_NORMALIZE__recover_builtin_cd
 }
 # source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.3.0/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/ssh.bash
 # source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # BEGIN
 #!/usr/bin/env bash
-# Copyright (c) 2024 Greg Rynkowski. All rights reserved.
+# Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
 
 # Path Initialization
