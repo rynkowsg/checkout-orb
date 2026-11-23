@@ -84,6 +84,14 @@ commands:
         default: "checkout/checkout"
         description: |
           The display name for the command.
+      remote_name:
+        type: string
+        default: "origin"
+        description: |
+          Name of the remote the repository is fetched from.
+          When dest_dir already holds a repository, it needs a remote with this name.
+          Submodules with relative URLs need "origin" when checking out a tag,
+          since a tag leaves no branch whose upstream could point at another name.
         #repo_branch:
         #  type: string
         #  default: ""
@@ -142,6 +150,7 @@ commands:
           depth_for_submodules: <<parameters.depth_for_submodules>>
           dest_dir: <<parameters.dest_dir>>
           name_displayed: <<parameters.name_displayed>>
+          remote_name: <<parameters.remote_name>>
           with_lfs: <<parameters.with_lfs>>
           with_submodules: <<parameters.with_submodules>>
       - run:

@@ -974,6 +974,9 @@ init_input_vars_checkout() {
   # prefer the latter, if not available, try to take the former
   GITHUB_TOKEN=${PARAM_GITHUB_TOKEN:-${GITHUB_TOKEN:-}}
 
+  # REMOTE_NAME - name of the remote, if not specified, set to origin
+  REMOTE_NAME=${PARAM_REMOTE_NAME:-${REMOTE_NAME:-"origin"}}
+
   # ENABLED_SUBMODULES - submodules support, if not specified, set to false
   ENABLED_SUBMODULES=${PARAM_WITH_SUBMODULES:-${ENABLED_SUBMODULES:-0}}
 
@@ -987,6 +990,7 @@ init_input_vars_checkout() {
   printf "%s\n" "- ENABLED_LFS=${ENABLED_LFS}"
   printf "%s\n" "- ENABLED_SUBMODULES=${ENABLED_SUBMODULES}"
   printf "%s\n" "- GITHUB_TOKEN=${GITHUB_TOKEN}"
+  printf "%s\n" "- REMOTE_NAME=${REMOTE_NAME}"
   printf "%s\n" "- REPO_BRANCH=${REPO_BRANCH}"
   printf "%s\n" "- REPO_SHA1=${REPO_SHA1}"
   printf "%s\n" "- REPO_TAG=${REPO_TAG}"
@@ -1036,6 +1040,7 @@ main() {
     GR_GITCO__ENABLED_LFS="${ENABLED_LFS}" \
     GR_GITCO__ENABLED_SUBMODULES="${ENABLED_SUBMODULES}" \
     GR_GITCO__GITHUB_TOKEN="${GITHUB_TOKEN}" \
+    GR_GITCO__REMOTE_NAME="${REMOTE_NAME}" \
     GR_GITCO__REPO_BRANCH="${REPO_BRANCH}" \
     GR_GITCO__REPO_SHA1="${REPO_SHA1}" \
     GR_GITCO__REPO_TAG="${REPO_TAG}" \

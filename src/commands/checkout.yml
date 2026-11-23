@@ -43,6 +43,14 @@ parameters:
     default: "checkout/checkout"
     description: |
       The display name for the command.
+  remote_name:
+    type: string
+    default: "origin"
+    description: |
+      Name of the remote the repository is fetched from.
+      When dest_dir already holds a repository, it needs a remote with this name.
+      Submodules with relative URLs need "origin" when checking out a tag,
+      since a tag leaves no branch whose upstream could point at another name.
   repo_branch:
     type: string
     default: ""
@@ -91,6 +99,7 @@ steps:
               PARAM_DEPTH_FOR_SUBMODULES: <<parameters.depth_for_submodules>>
               PARAM_DEST_DIR: <<parameters.dest_dir>>
               PARAM_GITHUB_TOKEN: <<parameters.github_token>>
+              PARAM_REMOTE_NAME: <<parameters.remote_name>>
               PARAM_REPO_BRANCH: <<parameters.repo_branch>>
               PARAM_REPO_SHA1: <<parameters.repo_sha1>>
               PARAM_REPO_TAG: <<parameters.repo_tag>>
@@ -111,6 +120,7 @@ steps:
               PARAM_DEPTH_FOR_SUBMODULES: <<parameters.depth_for_submodules>>
               PARAM_DEST_DIR: <<parameters.dest_dir>>
               PARAM_GITHUB_TOKEN: <<parameters.github_token>>
+              PARAM_REMOTE_NAME: <<parameters.remote_name>>
               PARAM_REPO_BRANCH: <<parameters.repo_branch>>
               PARAM_REPO_SHA1: <<parameters.repo_sha1>>
               PARAM_REPO_TAG: <<parameters.repo_tag>>
