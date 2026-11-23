@@ -68,6 +68,13 @@ commands:
         description: |
           Specifies the clone depth for submodules, indicating the number of recent commits to include.
           Default: -1 (fetches all commits).
+      depth_until_last_tag:
+        type: boolean
+        default: false
+        description: |
+          When true, a shallow clone is deepened until it reaches the last tag
+          before the checked out commit, and that tag is fetched, so `git describe --tags` works.
+          The full history is fetched when no tag is found.
       dest_dir:
         type: string
         default: ""
@@ -148,6 +155,7 @@ commands:
           debug: <<parameters.debug>>
           depth: <<parameters.depth>>
           depth_for_submodules: <<parameters.depth_for_submodules>>
+          depth_until_last_tag: <<parameters.depth_until_last_tag>>
           dest_dir: <<parameters.dest_dir>>
           name_displayed: <<parameters.name_displayed>>
           remote_name: <<parameters.remote_name>>

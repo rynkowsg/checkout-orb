@@ -960,6 +960,8 @@ init_input_vars_checkout() {
 
   DEPTH=${PARAM_DEPTH:--1}
   DEPTH_FOR_SUBMODULES=${PARAM_DEPTH_FOR_SUBMODULES:--1}
+  # DEPTH_UNTIL_LAST_TAG - deepening to the last tag, if not specified, set to false
+  DEPTH_UNTIL_LAST_TAG=${PARAM_DEPTH_UNTIL_LAST_TAG:-${DEPTH_UNTIL_LAST_TAG:-0}}
 
   # DEST_DIR - destination for repo
   #     If not provided in orb param, try DEST_DIR env var.
@@ -986,6 +988,7 @@ init_input_vars_checkout() {
   printf "${GREEN}%s${NC}\n" "Checkout vars:"
   printf "%s\n" "- DEPTH=${DEPTH}"
   printf "%s\n" "- DEPTH_FOR_SUBMODULES=${DEPTH_FOR_SUBMODULES}"
+  printf "%s\n" "- DEPTH_UNTIL_LAST_TAG=${DEPTH_UNTIL_LAST_TAG}"
   printf "%s\n" "- DEST_DIR=${DEST_DIR}"
   printf "%s\n" "- ENABLED_LFS=${ENABLED_LFS}"
   printf "%s\n" "- ENABLED_SUBMODULES=${ENABLED_SUBMODULES}"
@@ -1036,6 +1039,7 @@ main() {
     GR_GITCO__DEBUG_GIT="${DEBUG_GIT}" \
     GR_GITCO__DEPTH="${DEPTH}" \
     GR_GITCO__DEPTH_FOR_SUBMODULES="${DEPTH_FOR_SUBMODULES}" \
+    GR_GITCO__DEPTH_UNTIL_LAST_TAG="${DEPTH_UNTIL_LAST_TAG}" \
     GR_GITCO__DEST_DIR="${DEST_DIR}" \
     GR_GITCO__ENABLED_LFS="${ENABLED_LFS}" \
     GR_GITCO__ENABLED_SUBMODULES="${ENABLED_SUBMODULES}" \
