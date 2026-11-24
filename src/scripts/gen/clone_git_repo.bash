@@ -23,10 +23,10 @@ if [ -z "${SHELL_GR_DIR:-}" ]; then
   SCRIPT_PATH="$([[ ! "${SCRIPT_PATH_1}" =~ /bash$ ]] && readlink -f "${SCRIPT_PATH_1}" || echo "")"
   SCRIPT_DIR="$([ -n "${SCRIPT_PATH}" ] && (cd "$(dirname "${SCRIPT_PATH}")" && pwd -P) || echo "")"
   ROOT_DIR="$([ -n "${SCRIPT_DIR}" ] && (cd "${SCRIPT_DIR}/../.." && pwd -P) || echo "/tmp")"
-  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.8.0"
+  SHELL_GR_DIR="${ROOT_DIR}/.github_deps/rynkowsg/shell-gr@v0.9.0"
 fi
 # Library Sourcing
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/color.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.9.0/lib/color.bash
 # source "${SHELL_GR_DIR}/lib/color.bash" # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
@@ -51,7 +51,7 @@ is_color() {
   esac
 }
 # source "${SHELL_GR_DIR}/lib/color.bash" # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/circleci.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.9.0/lib/circleci.bash
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
@@ -103,7 +103,7 @@ print_common_debug_info() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/circleci.bash" # fix_home_in_old_images, print_common_debug_info # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/git_checkout_advanced.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.9.0/lib/git_checkout_advanced.bash
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
@@ -135,7 +135,7 @@ is_git_repository_root_dir() {
   is_git_repository && [ "$(git rev-parse --show-toplevel)" = "$(pwd -P)" ]
 }
 # source "${_SHELL_GR_DIR}/lib/git.bash"        # is_git_repository_root_dir # END
-# source "${_SHELL_GR_DIR}/lib/git_deepen.bash" # git_deepen_to_last_tag # BEGIN
+# source "${_SHELL_GR_DIR}/lib/git_deepen.bash" # git_deepen_to_branch, git_deepen_to_tag # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2026 Greg Rynkowski. All rights reserved.
 # License: MIT License
@@ -153,49 +153,72 @@ fi
 # Library Sourcing
 # source "${_SHELL_GR_DIR}/lib/color.bash" # GREEN, NC, RED, YELLOW # SKIPPED
 
-# Deepens a shallow repo until the history of HEAD reaches a tag, then fetches
-# the tags found in that history, so `git describe --tags` works.
-# Each round deepens twice as much as the one before. When no tag shows up
-# within these rounds, or the remote has no tags, it fetches the full history.
-# A repo with the full history is not deepened, but it still gets the tags in
-# that history when they were not fetched.
+# Prints the remote and the refspec of the upstream of the current branch,
+# separated by a space. Prints nothing for a detached HEAD or a branch without
+# an upstream.
+_git_deepen_upstream() {
+  # Without a ref, for-each-ref would list every ref, so a detached HEAD is
+  # checked first.
+  local head_ref
+  head_ref="$(git symbolic-ref -q HEAD || true)"
+  if [ -z "${head_ref}" ]; then
+    return 0
+  fi
+  local upstream_remote upstream_remote_ref upstream_tracking_ref
+  read -r upstream_remote upstream_remote_ref upstream_tracking_ref \
+    <<<"$(git for-each-ref --format="%(upstream:remotename) %(upstream:remoteref) %(upstream)" "${head_ref}")"
+  if [ -z "${upstream_remote_ref}" ]; then
+    return 0
+  fi
+  # The refspec names only the branch of HEAD, since a bare
+  # `git fetch <remote>` takes every branch the remote has.
+  printf "%s %s\n" "${upstream_remote}" "${upstream_remote_ref}:${upstream_tracking_ref}"
+}
+
+# Deepens a shallow repo until the history of HEAD reaches a tag whose name
+# matches a regex, then fetches the matching tags found in that history.
+# Each round deepens twice as much as the one before. When no matching tag
+# shows up within these rounds, or the remote has none, it fetches the full
+# history. A repo with the full history is not deepened, but it still gets the
+# matching tags in that history when they were not fetched.
 # Works in the current directory.
 # Inputs:
-# GR_GITDEEPEN__REMOTE  - remote name, e.g. origin
-# GR_GITDEEPEN__REFSPEC - refspec to deepen, e.g. refs/heads/main:refs/remotes/origin/main
-# Each input left empty is taken from the upstream of the current branch. When
-# it is neither given nor found there, the function fails.
-git_deepen_to_last_tag() {
+# GR_GITDEEPEN__REMOTE    - remote name, e.g. origin
+# GR_GITDEEPEN__REFSPEC   - refspec to deepen, e.g. refs/heads/main:refs/remotes/origin/main
+# GR_GITDEEPEN__TAG_REGEX - extended regex (ERE) the tag name has to match,
+#                           e.g. ^v[0-9]+\.[0-9]+\.[0-9]+$; empty matches any tag
+# The remote and the refspec left empty are taken from the upstream of the
+# current branch. When they are neither given nor found there, the function
+# fails.
+git_deepen_to_tag() {
   local remote="${GR_GITDEEPEN__REMOTE:-}"
   local refspec="${GR_GITDEEPEN__REFSPEC:-}"
+  local -r tag_regex="${GR_GITDEEPEN__TAG_REGEX:-}"
   local -r max_rounds=6
 
-  printf "${GREEN}%s${NC}\n" "Deepening to the last tag..."
-  if git describe --tags --abbrev=0 HEAD >/dev/null 2>&1; then
-    printf "%s\n" "- tag already in history: $(git describe --tags --abbrev=0 HEAD)"
+  printf "${GREEN}%s${NC}\n" "Deepening to a tag..."
+  printf "%s\n" "- tag regex: ${tag_regex}"
+  # Bash returns 2 from =~ when the regex itself is invalid.
+  local regex_status=0
+  # shellcheck disable=SC2319 # the status of the =~ test is the one needed here
+  [[ "" =~ ${tag_regex} ]] || regex_status=$?
+  if [ "${regex_status}" -eq 2 ]; then
+    printf "${RED}%s${NC}\n" "Can not deepen: the tag regex is invalid."
+    return 1
+  fi
+  local local_tag
+  local_tag="$(git for-each-ref --merged HEAD --sort=-creatordate --format="%(refname:strip=2)" refs/tags \
+    | grep -E -m 1 -e "${tag_regex}" || true)"
+  if [ -n "${local_tag}" ]; then
+    printf "%s\n" "- tag already in history: ${local_tag}"
     printf "%s\n" ""
     return 0
   fi
 
-  if [ -z "${remote}" ] || [ -z "${refspec}" ]; then
-    # Without a ref, for-each-ref would list every ref, so a detached HEAD
-    # is checked first.
-    local head_ref upstream=""
-    head_ref="$(git symbolic-ref -q HEAD || true)"
-    if [ -n "${head_ref}" ]; then
-      upstream="$(git for-each-ref --format="%(upstream:remotename) %(upstream:remoteref) %(upstream)" "${head_ref}")"
-    fi
-    local upstream_remote upstream_remote_ref upstream_tracking_ref
-    read -r upstream_remote upstream_remote_ref upstream_tracking_ref <<<"${upstream}"
-    if [ -z "${remote}" ]; then
-      remote="${upstream_remote}"
-    fi
-    # The refspec names only the branch of HEAD, since a bare
-    # `git fetch <remote>` takes every branch the remote has.
-    if [ -z "${refspec}" ] && [ -n "${upstream_remote_ref}" ]; then
-      refspec="${upstream_remote_ref}:${upstream_tracking_ref}"
-    fi
-  fi
+  local upstream_remote upstream_refspec
+  read -r upstream_remote upstream_refspec <<<"$(_git_deepen_upstream)"
+  remote="${remote:-"${upstream_remote}"}"
+  refspec="${refspec:-"${upstream_refspec}"}"
   if [ -z "${remote}" ] || [ -z "${refspec}" ]; then
     printf "${RED}%s${NC}\n" "Can not deepen: the remote or the refspec is neither given nor found in the upstream of HEAD."
     return 1
@@ -204,12 +227,14 @@ git_deepen_to_last_tag() {
   printf "%s\n" "- remote: ${remote}"
   printf "%s\n" "- refspec: ${refspec}"
 
-  # Map each remote tag to the commit it points to. An annotated tag is listed
-  # twice, and its line ending with "^{}" holds the commit, so that line wins.
+  # Map each matching remote tag to the commit it points to. An annotated tag
+  # is listed twice, and its line ending with "^{}" holds the commit, so that
+  # line wins.
   local -A tag_commits=()
   local sha ref name
   while read -r sha ref; do
     name="${ref#refs/tags/}"
+    [[ "${name%"^{}"}" =~ ${tag_regex} ]] || continue
     if [[ "${name}" == *"^{}" ]]; then
       tag_commits["${name%"^{}"}"]="${sha}"
     elif [ -z "${tag_commits["${name}"]:-}" ]; then
@@ -225,26 +250,29 @@ git_deepen_to_last_tag() {
 
   local step=10
   local round=0
-  local -a found_refspecs names
+  local -a found_names found_refspecs names
   while true; do
+    found_names=()
     found_refspecs=()
     if [ ${#commit_tags[@]} -gt 0 ]; then
       # grep streams the history, so even a long one is never held in memory.
+      # rev-list starts from HEAD, so the first tag found is the nearest one.
       while read -r sha; do
         read -r -a names <<<"${commit_tags["${sha}"]}"
         for name in "${names[@]}"; do
+          found_names+=("${name}")
           found_refspecs+=("refs/tags/${name}:refs/tags/${name}")
         done
       done < <(git rev-list HEAD | grep -F -x -f <(printf "%s\n" "${!commit_tags[@]}"))
     fi
     if [ ${#found_refspecs[@]} -gt 0 ]; then
       git fetch --no-tags "${remote}" "${found_refspecs[@]}"
-      printf "%s\n" "- found tag: $(git describe --tags --abbrev=0 HEAD)"
+      printf "%s\n" "- found tag: ${found_names[0]}"
       printf "%s\n" ""
       return 0
     fi
     if [ "$(git rev-parse --is-shallow-repository)" != "true" ]; then
-      printf "${YELLOW}%s${NC}\n" "- no tag in the history of HEAD"
+      printf "${YELLOW}%s${NC}\n" "- no matching tag in the history of HEAD"
       printf "%s\n" ""
       return 0
     fi
@@ -259,7 +287,91 @@ git_deepen_to_last_tag() {
     fi
   done
 }
-# source "${_SHELL_GR_DIR}/lib/git_deepen.bash" # git_deepen_to_last_tag # END
+
+# Fetches the tip of a branch and deepens it together with HEAD until their
+# histories meet, so `git merge-base HEAD <remote>/<branch>` works.
+# The branch lands in refs/remotes/<remote>/<branch>.
+# Each round deepens twice as much as the one before. When the histories do
+# not meet within these rounds, it fetches the full history of both.
+# Works in the current directory.
+# Inputs:
+# GR_GITDEEPEN__REMOTE  - remote name, e.g. origin
+# GR_GITDEEPEN__REFSPEC - refspec of HEAD to deepen, e.g. refs/heads/feature:refs/remotes/origin/feature
+# GR_GITDEEPEN__BRANCH  - branch name on the remote, e.g. main
+# The remote and the refspec left empty are taken from the upstream of the
+# current branch. When they are neither given nor found there, or the branch is
+# not given, the function fails.
+git_deepen_to_branch() {
+  local remote="${GR_GITDEEPEN__REMOTE:-}"
+  local head_refspec="${GR_GITDEEPEN__REFSPEC:-}"
+  local -r branch="${GR_GITDEEPEN__BRANCH:-}"
+  local -r max_rounds=6
+
+  printf "${GREEN}%s${NC}\n" "Deepening to a branch..."
+  local upstream_remote upstream_refspec
+  read -r upstream_remote upstream_refspec <<<"$(_git_deepen_upstream)"
+  remote="${remote:-"${upstream_remote}"}"
+  head_refspec="${head_refspec:-"${upstream_refspec}"}"
+  if [ -z "${remote}" ] || [ -z "${head_refspec}" ]; then
+    printf "${RED}%s${NC}\n" "Can not deepen: the remote or the refspec is neither given nor found in the upstream of HEAD."
+    return 1
+  fi
+  if [ -z "${branch}" ]; then
+    printf "${RED}%s${NC}\n" "Can not deepen: the branch is not given."
+    return 1
+  fi
+  readonly remote head_refspec
+  local -r tracking_ref="refs/remotes/${remote}/${branch}"
+  local -r branch_refspec="refs/heads/${branch}:${tracking_ref}"
+  printf "%s\n" "- remote: ${remote}"
+  printf "%s\n" "- refspec: ${head_refspec}"
+  printf "%s\n" "- branch: ${branch}"
+
+  local tip
+  tip="$(git ls-remote "${remote}" "refs/heads/${branch}" | cut -f 1)"
+  if [ -z "${tip}" ]; then
+    printf "${RED}%s${NC}\n" "Can not deepen: the branch is not found on the remote."
+    return 1
+  fi
+  if git cat-file -e "${tip}^{commit}" 2>/dev/null; then
+    # The tip is already here, so only the ref is missing. A fetch with
+    # --depth would mark the tip as shallow and cut the history of HEAD below it.
+    git update-ref "${tracking_ref}" "${tip}"
+  elif [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+    # The tip is a new commit, so with --depth 1 only that commit becomes
+    # shallow and the history of HEAD stays as it is.
+    git fetch --no-tags --depth 1 "${remote}" "${branch_refspec}"
+  else
+    git fetch --no-tags "${remote}" "${branch_refspec}"
+  fi
+
+  # Both histories are deepened, since the fork point can be missing on either
+  # side.
+  local step=10
+  local round=0
+  while true; do
+    if git merge-base HEAD "${tracking_ref}" >/dev/null 2>&1; then
+      printf "%s\n" "- found merge base: $(git merge-base HEAD "${tracking_ref}")"
+      printf "%s\n" ""
+      return 0
+    fi
+    if [ "$(git rev-parse --is-shallow-repository)" != "true" ]; then
+      printf "${YELLOW}%s${NC}\n" "- no common history with HEAD"
+      printf "%s\n" ""
+      return 0
+    fi
+    round=$((round + 1))
+    if [ "${round}" -gt "${max_rounds}" ]; then
+      printf "%s\n" "- fetching the full history"
+      git fetch --no-tags --unshallow "${remote}" "${head_refspec}" "${branch_refspec}"
+    else
+      printf "%s\n" "- deepening by ${step} commits"
+      git fetch --no-tags --deepen "${step}" "${remote}" "${head_refspec}" "${branch_refspec}"
+      step=$((step * 2))
+    fi
+  done
+}
+# source "${_SHELL_GR_DIR}/lib/git_deepen.bash" # git_deepen_to_branch, git_deepen_to_tag # END
 # source "${_SHELL_GR_DIR}/lib/github.bash"     # github_authorized_repo_url # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
@@ -287,7 +399,8 @@ git_checkout_advanced() {
   local -r input_DEBUG_GIT="${GR_GITCO__DEBUG_GIT:-}"
   local -r input_DEPTH="${GR_GITCO__DEPTH:-}"
   local -r input_DEPTH_FOR_SUBMODULES="${GR_GITCO__DEPTH_FOR_SUBMODULES:-}"
-  local -r input_DEPTH_UNTIL_LAST_TAG="${GR_GITCO__DEPTH_UNTIL_LAST_TAG:-}"
+  local -r input_DEPTH_UNTIL_BRANCH="${GR_GITCO__DEPTH_UNTIL_BRANCH:-}"
+  local -r input_DEPTH_UNTIL_TAG="${GR_GITCO__DEPTH_UNTIL_TAG:-}"
   local -r input_DEST_DIR="${GR_GITCO__DEST_DIR:-}"
   local -r input_ENABLED_LFS="${GR_GITCO__ENABLED_LFS:-}"
   local -r input_ENABLED_SUBMODULES="${GR_GITCO__ENABLED_SUBMODULES:-}"
@@ -302,7 +415,8 @@ git_checkout_advanced() {
   local -r debug_git="${input_DEBUG_GIT}"
   local -r depth="${input_DEPTH}"
   local -r depth_for_submodules="${input_DEPTH_FOR_SUBMODULES}"
-  local -r depth_until_last_tag="${input_DEPTH_UNTIL_LAST_TAG}"
+  local -r depth_until_branch="${input_DEPTH_UNTIL_BRANCH}"
+  local -r depth_until_tag="${input_DEPTH_UNTIL_TAG}"
   local -r dest="${input_DEST_DIR}"
   local -r enabled_lfs="${input_ENABLED_LFS}"
   local -r enabled_submodules="${input_ENABLED_SUBMODULES}"
@@ -392,12 +506,19 @@ git_checkout_advanced() {
     printf "${RED}%s${NC}\n" "Need to specify REPO_TAG to fetch by tag or REPO_BRANCH and REPO_SHA1 to fetch by branch."
     exit 1
   fi
-  if [ "${depth_until_last_tag}" = 1 ]; then
-    local deepen_refspec="refs/heads/${repo_branch}:refs/remotes/${remote_name}/${repo_branch}"
-    [ -n "${repo_tag}" ] && deepen_refspec="refs/tags/${repo_tag}:refs/tags/${repo_tag}"
+  local deepen_refspec="refs/heads/${repo_branch}:refs/remotes/${remote_name}/${repo_branch}"
+  [ -n "${repo_tag}" ] && deepen_refspec="refs/tags/${repo_tag}:refs/tags/${repo_tag}"
+  if [ -n "${depth_until_tag}" ]; then
     GR_GITDEEPEN__REMOTE="${remote_name}" \
       GR_GITDEEPEN__REFSPEC="${deepen_refspec}" \
-      git_deepen_to_last_tag
+      GR_GITDEEPEN__TAG_REGEX="${depth_until_tag}" \
+      git_deepen_to_tag || exit 1
+  fi
+  if [ -n "${depth_until_branch}" ]; then
+    GR_GITDEEPEN__REMOTE="${remote_name}" \
+      GR_GITDEEPEN__REFSPEC="${deepen_refspec}" \
+      GR_GITDEEPEN__BRANCH="${depth_until_branch}" \
+      git_deepen_to_branch || exit 1
   fi
   submodule_update_params=("--init" "--recursive")
   [ "${depth_for_submodules}" -ne -1 ] && submodule_update_params+=("--depth" "${depth_for_submodules}")
@@ -520,7 +641,7 @@ EOF
   echo "${fetch_repo_script}"
 }
 # source "${SHELL_GR_DIR}/lib/git_checkout_advanced.bash" # git_checkout_advanced # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/git_lfs.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.9.0/lib/git_lfs.bash
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
@@ -565,7 +686,7 @@ setup_git_lfs() {
   printf "%s\n" ""
 }
 # source "${SHELL_GR_DIR}/lib/git_lfs.bash" # setup_git_lfs # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/normalize.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.9.0/lib/normalize.bash
 # source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024. All rights reserved.
@@ -682,7 +803,7 @@ GR_NORMALIZE__normalize() {
   GR_NORMALIZE__recover_builtin_cd
 }
 # source "${SHELL_GR_DIR}/lib/normalize.bash" # GR_NORMALIZE__normalize # END
-# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.8.0/lib/ssh.bash
+# shellcheck source=.github_deps/rynkowsg/shell-gr@v0.9.0/lib/ssh.bash
 # source "${SHELL_GR_DIR}/lib/ssh.bash" # setup_ssh # BEGIN
 #!/usr/bin/env bash
 # Copyright (c) 2024-2026 Greg Rynkowski. All rights reserved.
@@ -960,8 +1081,8 @@ init_input_vars_checkout() {
 
   DEPTH=${PARAM_DEPTH:--1}
   DEPTH_FOR_SUBMODULES=${PARAM_DEPTH_FOR_SUBMODULES:--1}
-  # DEPTH_UNTIL_LAST_TAG - deepening to the last tag, if not specified, set to false
-  DEPTH_UNTIL_LAST_TAG=${PARAM_DEPTH_UNTIL_LAST_TAG:-${DEPTH_UNTIL_LAST_TAG:-0}}
+  # DEPTH_UNTIL_TAG - regex of the tag to deepen to, if not specified, no deepening
+  DEPTH_UNTIL_TAG=${PARAM_DEPTH_UNTIL_TAG:-${DEPTH_UNTIL_TAG:-}}
 
   # DEST_DIR - destination for repo
   #     If not provided in orb param, try DEST_DIR env var.
@@ -988,7 +1109,7 @@ init_input_vars_checkout() {
   printf "${GREEN}%s${NC}\n" "Checkout vars:"
   printf "%s\n" "- DEPTH=${DEPTH}"
   printf "%s\n" "- DEPTH_FOR_SUBMODULES=${DEPTH_FOR_SUBMODULES}"
-  printf "%s\n" "- DEPTH_UNTIL_LAST_TAG=${DEPTH_UNTIL_LAST_TAG}"
+  printf "%s\n" "- DEPTH_UNTIL_TAG=${DEPTH_UNTIL_TAG}"
   printf "%s\n" "- DEST_DIR=${DEST_DIR}"
   printf "%s\n" "- ENABLED_LFS=${ENABLED_LFS}"
   printf "%s\n" "- ENABLED_SUBMODULES=${ENABLED_SUBMODULES}"
@@ -1039,7 +1160,7 @@ main() {
     GR_GITCO__DEBUG_GIT="${DEBUG_GIT}" \
     GR_GITCO__DEPTH="${DEPTH}" \
     GR_GITCO__DEPTH_FOR_SUBMODULES="${DEPTH_FOR_SUBMODULES}" \
-    GR_GITCO__DEPTH_UNTIL_LAST_TAG="${DEPTH_UNTIL_LAST_TAG}" \
+    GR_GITCO__DEPTH_UNTIL_TAG="${DEPTH_UNTIL_TAG}" \
     GR_GITCO__DEST_DIR="${DEST_DIR}" \
     GR_GITCO__ENABLED_LFS="${ENABLED_LFS}" \
     GR_GITCO__ENABLED_SUBMODULES="${ENABLED_SUBMODULES}" \
