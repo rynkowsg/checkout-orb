@@ -6,7 +6,7 @@ orbs:
   # I don't want to reconstruct manually environment when the issue was detected.
   android: circleci/android@2.5.0 # Don't update it.
   # changelog: https://github.com/CircleCI-Public/BATS-orb/releases
-  bats: circleci/bats@1.1.0
+  bats: circleci/bats@1.2.0
   # orb in this repo
   checkout: {}
   # orb info: https://circleci.com/developer/orbs/orb/circleci/orb-tools
@@ -19,25 +19,25 @@ executors:
   # https://circleci.com/developer/images/image/cimg/base
   # https://hub.docker.com/r/cimg/base/tags
   docker_base_medium_arm:
-    docker: [{image: 'cimg/base:2026.09-24.04'}]
+    docker: [{image: 'cimg/base:2026.11-26.04'}]
     resource_class: arm.medium
   docker_base_small_x86:
-    docker: [{image: 'cimg/base:2026.09-24.04'}]
+    docker: [{image: 'cimg/base:2026.11-26.04'}]
     resource_class: small
   # https://circleci.com/developer/machine/image/android
   machine_android_medium_x86:
-    machine: {image: 'android:2026.05.1'}
+    machine: {image: 'android:2026.10.1'}
     resource_class: medium
   # https://circleci.com/developer/machine/image/ubuntu-2604
   machine_ubuntu2604_medium_arm:
-    machine: {image: 'ubuntu-2604:2026.07.1'}
+    machine: {image: 'ubuntu-2604:2026.11.1'}
     resource_class: arm.medium
   machine_ubuntu2604_medium_x86:
-    machine: {image: 'ubuntu-2604:2026.07.1'}
+    machine: {image: 'ubuntu-2604:2026.11.1'}
     resource_class: medium
   # https://circleci.com/developer/machine/image/xcode
   macos_medium:
-    macos: {xcode: '27.0.0'}
+    macos: {xcode: '27.3.0'}
     resource_class: m4pro.medium
 
 commands:
