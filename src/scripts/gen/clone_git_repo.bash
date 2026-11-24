@@ -1081,6 +1081,8 @@ init_input_vars_checkout() {
 
   DEPTH=${PARAM_DEPTH:--1}
   DEPTH_FOR_SUBMODULES=${PARAM_DEPTH_FOR_SUBMODULES:--1}
+  # DEPTH_UNTIL_BRANCH - base branch to deepen to, if not specified, no deepening
+  DEPTH_UNTIL_BRANCH=${PARAM_DEPTH_UNTIL_BRANCH:-${DEPTH_UNTIL_BRANCH:-}}
   # DEPTH_UNTIL_TAG - regex of the tag to deepen to, if not specified, no deepening
   DEPTH_UNTIL_TAG=${PARAM_DEPTH_UNTIL_TAG:-${DEPTH_UNTIL_TAG:-}}
 
@@ -1109,6 +1111,7 @@ init_input_vars_checkout() {
   printf "${GREEN}%s${NC}\n" "Checkout vars:"
   printf "%s\n" "- DEPTH=${DEPTH}"
   printf "%s\n" "- DEPTH_FOR_SUBMODULES=${DEPTH_FOR_SUBMODULES}"
+  printf "%s\n" "- DEPTH_UNTIL_BRANCH=${DEPTH_UNTIL_BRANCH}"
   printf "%s\n" "- DEPTH_UNTIL_TAG=${DEPTH_UNTIL_TAG}"
   printf "%s\n" "- DEST_DIR=${DEST_DIR}"
   printf "%s\n" "- ENABLED_LFS=${ENABLED_LFS}"
@@ -1160,6 +1163,7 @@ main() {
     GR_GITCO__DEBUG_GIT="${DEBUG_GIT}" \
     GR_GITCO__DEPTH="${DEPTH}" \
     GR_GITCO__DEPTH_FOR_SUBMODULES="${DEPTH_FOR_SUBMODULES}" \
+    GR_GITCO__DEPTH_UNTIL_BRANCH="${DEPTH_UNTIL_BRANCH}" \
     GR_GITCO__DEPTH_UNTIL_TAG="${DEPTH_UNTIL_TAG}" \
     GR_GITCO__DEST_DIR="${DEST_DIR}" \
     GR_GITCO__ENABLED_LFS="${ENABLED_LFS}" \

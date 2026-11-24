@@ -68,6 +68,14 @@ commands:
         description: |
           Specifies the clone depth for submodules, indicating the number of recent commits to include.
           Default: -1 (fetches all commits).
+      depth_until_branch:
+        type: string
+        default: ""
+        description: |
+          Name of a base branch, e.g. `main`.
+          When set, the branch is fetched and a shallow clone is deepened together with it
+          until they share history, so tools like GitVersion find the merge base.
+          Empty disables the deepening.
       depth_until_tag:
         type: string
         default: ""
@@ -157,6 +165,7 @@ commands:
           debug: <<parameters.debug>>
           depth: <<parameters.depth>>
           depth_for_submodules: <<parameters.depth_for_submodules>>
+          depth_until_branch: <<parameters.depth_until_branch>>
           depth_until_tag: <<parameters.depth_until_tag>>
           dest_dir: <<parameters.dest_dir>>
           name_displayed: <<parameters.name_displayed>>
